@@ -118,6 +118,26 @@ const textoDe = (id: string) => {
   return [...mission.story, ...(mission.concept?.points ?? []), ...mission.hints].join("\n");
 };
 
+describe("cola de comandos", () => {
+  it("cada item copia um único comando que o terminal aceita", () => {
+    for (const m of ALL_MISSIONS) {
+      for (const c of m.cheatsheet ?? []) {
+        expect(c, m.id).not.toContain("&&");
+        expect(c, m.id).not.toMatch(/\s\/\s/);
+      }
+    }
+  });
+});
+
+describe("comando que o Dojo não executa", () => {
+  it("não conta como erro nem cumpre objetivo", () => {
+    const s = play("primeiro-dia", ["git init", "git status && git log"]);
+    expect(s.errors).toBe(0);
+    expect(evaluate(findMission("primeiro-dia")!.mission, s)[2]).toBe(false);
+    expect(s.commands).toContain("git status && git log");
+  });
+});
+
 describe("coerência do conteúdo com o fluxo trunk-based", () => {
   it("nenhuma missão proíbe commitar direto na main", () => {
     for (const m of ALL_MISSIONS) expect(textoDe(m.id), m.id).not.toMatch(/ningu[eé]m (desenvolve|commita|trabalha) direto na/i);

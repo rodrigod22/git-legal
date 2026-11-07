@@ -270,6 +270,29 @@ describe("remoto simulado (trunk-based)", () => {
   });
 });
 
+describe("um comando por vez", () => {
+  it("avisa sobre && e não executa nada", () => {
+    const r = run(base(), 'echo "x" > a.txt').repo;
+    const res = run(r, 'git add . && git commit -m "dois em um"');
+    expect(res.ok).toBe(true);
+    expect(res.event).toBe("unsupported");
+    expect(res.lines.join("\n")).toContain("&&");
+    expect(res.repo).toBe(r);
+    expect(G.status(res.repo).staged).toEqual([]);
+  });
+  it.each(["git status || git log", "git log | head", "git status; git log"])("avisa também em: %s", (cmd) => {
+    const res = run(base(), cmd);
+    expect(res.event).toBe("unsupported");
+  });
+  it("não confunde operador dentro de aspas", () => {
+    const res = run(base(), 'echo "a && b; c | d" > a.txt', "git add .", 'git commit -m "a && b"');
+    expect(res.ok).toBe(true);
+    expect(res.event).toBe("commit");
+    expect(res.repo.workdir["a.txt"]).toBe("a && b; c | d\n");
+    expect(res.repo.commits[G.headSha(res.repo)!].message).toBe("a && b");
+  });
+});
+
 describe("stash e reset", () => {
   it("stash guarda e devolve alterações", () => {
     const r = run(base(), 'echo "wip" > wip.txt', "git add wip.txt", "git stash");

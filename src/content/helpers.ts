@@ -89,7 +89,7 @@ export const committedFile = (r: Repo, path: string, ref = "HEAD") => {
 };
 export const clean = (r: Repo) => G.isCleanRepo(r);
 export const noConflicts = (r: Repo) => r.conflicts.length === 0 && !r.inProgress && !r.rebase;
-export const used = (ctx: CheckCtx, re: RegExp) => ctx.commands.some((c) => re.test(c));
+export const used = (ctx: CheckCtx, re: RegExp) => ctx.commands.some((c, i) => ctx.events[i] !== "unsupported" && re.test(c));
 export const happened = (ctx: CheckCtx, ev: CheckCtx["events"][number]) => ctx.events.includes(ev);
 export const commitsOn = (r: Repo, ref: string) => {
   try {

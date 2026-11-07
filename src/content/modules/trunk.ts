@@ -104,7 +104,7 @@ export const trunk: Module = {
         "Passo 2: `edit index.php` e adicione `require 'rodape.php';`. Commit. Antes do push, `git pull --rebase` (a Ana enviou algo).",
         "Passo 3: `echo \"footer { padding: 16px; }\" >> style.css`, commit, `git pull --rebase`, `git push`.",
       ],
-      cheatsheet: ["git add . && git commit -m \"...\"  (um comando por vez)", "git pull --rebase", "git push", "git log --oneline origin/main"],
+      cheatsheet: ["git add .", 'git commit -m "descreva o passo"', "git pull --rebase", "git push", "git log --oneline origin/main"],
       xp: 130,
     },
     {
@@ -177,7 +177,7 @@ export const trunk: Module = {
         "`git switch main`, `git pull` (traz o commit da Ana). `git switch feat/modo-escuro`, `git rebase main`.",
         "`git switch main`, `git merge feat/modo-escuro` (fast-forward), `git push`, `git branch -d feat/modo-escuro`.",
       ],
-      cheatsheet: ["git switch -c feat/modo-escuro", 'echo ":root { color-scheme: dark; }" > tema.css', "git add . / git commit -m \"modo escuro\"", "git switch main / git pull", "git switch feat/modo-escuro / git rebase main", "git switch main / git merge feat/modo-escuro", "git push / git branch -d feat/modo-escuro"],
+      cheatsheet: ["git switch -c feat/modo-escuro", 'echo ":root { color-scheme: dark; }" > tema.css', "git add .", 'git commit -m "modo escuro"', "git switch main", "git pull", "git switch feat/modo-escuro", "git rebase main", "git switch main", "git merge feat/modo-escuro", "git push", "git branch -d feat/modo-escuro"],
       xp: 150,
     },
     {

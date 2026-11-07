@@ -21,7 +21,9 @@ export type TerminalEvent =
   | "pull"
   | "reset"
   | "stash"
-  | "error";
+  | "error"
+  /** o Dojo não executou o comando: é válido no Git real, então não conta como erro do aluno */
+  | "unsupported";
 
 export interface CommandResult {
   repo: Repo;
@@ -74,6 +76,24 @@ export function tokenize(input: string): string[] {
   return out;
 }
 
+/** Primeiro operador de shell fora de aspas (&&, ||, | ou ;), se houver. */
+export function shellOperator(input: string): string | null {
+  let quote: string | null = null;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (quote) {
+      if (ch === quote) quote = null;
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (input.startsWith("&&", i) || input.startsWith("||", i)) {
+      return input.slice(i, i + 2);
+    } else if (ch === "|" || ch === ";") {
+      return ch;
+    }
+  }
+  return null;
+}
+
 function fmtDate(ts: number): string {
   const base = new Date(2026, 0, 5, 9, 0, 0).getTime() + ts * 7 * 60 * 1000;
   const d = new Date(base);
@@ -107,11 +127,22 @@ const HELP = [
   "  rebase [--continue --abort], reset [--soft --hard], revert, cherry-pick",
   "  stash [pop list apply drop], restore [--staged], rm, show, reflog",
   "  fetch, pull [--rebase], push [-u origin <branch>], remote -v",
+  "",
+  "<d>Um comando por vez: &&, ||, | e ; funcionam no seu terminal, mas não aqui.</d>",
 ];
 
 export function execute(repo: Repo, input: string): CommandResult {
   const raw = input.trim();
   if (!raw) return { repo, lines: [], ok: true };
+  const op = shellOperator(raw);
+  if (op) {
+    return {
+      repo,
+      lines: [`<y>aviso: o terminal do Dojo roda um comando por vez e não entende '${esc(op)}'. Nada foi executado.</y>`, "<d>dica: digite um comando, aperte Enter e depois digite o próximo. No seu terminal esse operador funciona.</d>"],
+      ok: true,
+      event: "unsupported",
+    };
+  }
   const argv = tokenize(raw);
   const cmd = argv[0];
   try {
