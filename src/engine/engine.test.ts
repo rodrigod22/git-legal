@@ -1145,3 +1145,76 @@ describe("git reset com arquivo", () => {
     }
   });
 });
+
+describe("git switch para commit", () => {
+  const dois = () => run(G.createRepo({ user: "voce" }), "git init", "echo a > a.txt", "git add .", 'git commit -m "um"', "echo 2 > b.txt", "git add .", 'git commit -m "dois"').repo;
+  const umHash = (r: Repo) => G.resolve(r, "HEAD~1");
+  const comRemoto = () => {
+    const r = G.addRemote(dois());
+    return G.push(r, { branch: "main" }).repo;
+  };
+
+  describe("recusa sem --detach", () => {
+    const casos: [string, () => Repo, (r: Repo) => string][] = [
+      ["hash", dois, (r) => `git switch ${umHash(r)}`],
+      ["hash abreviado", dois, (r) => `git switch ${G.short(umHash(r))}`],
+      ["HEAD~1", dois, () => "git switch HEAD~1"],
+      ["HEAD", dois, () => "git switch HEAD"],
+      ["origin/main", comRemoto, () => "git switch origin/main"],
+      ["hash com -f", dois, (r) => `git switch -f ${umHash(r)}`],
+    ];
+    for (const [nome, setup, cmd] of casos) {
+      it(`${nome}: é um erro normal, com a dica do --detach, e não muda nada`, () => {
+        const antes = setup();
+        const res = run(antes, cmd(antes));
+        expect(res.ok).toBe(false);
+        expect(res.event).toBe("error");
+        expect(res.lines.join("\n")).toContain("--detach");
+        expect(res.repo).toEqual(antes);
+      });
+    }
+    it("diz quando a referência é uma branch remota", () => {
+      expect(run(comRemoto(), "git switch origin/main").lines[0]).toContain("branch remota");
+    });
+    it("nome desconhecido continua dando o erro próprio", () => {
+      const res = run(dois(), "git switch naoexiste");
+      expect(res.ok).toBe(false);
+      expect(res.lines.join("\n")).toContain("naoexiste");
+      expect(res.lines.join("\n")).not.toContain("--detach");
+    });
+  });
+
+  describe("o que continua valendo", () => {
+    it("git switch --detach desanexa em hash, HEAD~1 e origin/main", () => {
+      const r = comRemoto();
+      for (const cmd of [`git switch --detach ${umHash(r)}`, "git switch --detach HEAD~1", "git switch --detach origin/main"]) {
+        const res = run(r, cmd);
+        expect(res.ok).toBe(true);
+        expect(res.repo.head.type).toBe("detached");
+      }
+    });
+    it("git checkout desanexa em hash, HEAD~1 e origin/main", () => {
+      const r = comRemoto();
+      for (const cmd of [`git checkout ${umHash(r)}`, "git checkout HEAD~1", "git checkout origin/main"]) {
+        const res = run(r, cmd);
+        expect(res.ok).toBe(true);
+        expect(res.repo.head.type).toBe("detached");
+      }
+    });
+    it("git switch -c nasce de um commit", () => {
+      const r = dois();
+      const res = run(r, `git switch -c novo ${umHash(r)}`);
+      expect(res.ok).toBe(true);
+      expect(G.status(res.repo).branch).toBe("novo");
+    });
+    it("git switch vai para uma branch, mesmo com nome de hash", () => {
+      const res = run(dois(), "git branch abcd", "git switch abcd");
+      expect(res.ok).toBe(true);
+      expect(G.status(res.repo).branch).toBe("abcd");
+    });
+    it("G.checkout, usado pelos cenários, continua desanexando", () => {
+      const r = dois();
+      expect(G.checkout(r, umHash(r)).head.type).toBe("detached");
+    });
+  });
+});

@@ -396,6 +396,11 @@ function runGit(repo: Repo, args: string[]): CommandResult {
       }
       if (pos[0] === "-") throw new GitError("dica: 'git switch -' não é suportado no treinamento; informe o nome da branch.");
       if (!pos[0]) throw new GitError(`fatal: informe a branch. Ex.: git ${sub} ${create ? "-b " : ""}nome-da-branch`);
+      if (sub === "switch" && !create && !f.has("--detach") && !(pos[0] in repo.branches)) {
+        G.resolve(repo, pos[0]); // nome desconhecido tem o erro próprio
+        const kind = pos[0] in repo.remoteRefs ? "uma branch remota" : "um commit";
+        throw new GitError(`fatal: o git switch espera uma branch, mas '${pos[0]}' é ${kind}.\ndica: para desanexar o HEAD nesse ponto, use 'git switch --detach ${pos[0]}'.`);
+      }
       const r = G.checkout(repo, pos[0], { create, force: f.has("-f") || f.has("--force"), startPoint: create ? pos[1] : undefined, detach: f.has("--detach") });
       const lines = create
         ? [`Trocado para a nova branch '<g>${esc(pos[0])}</g>'`]
