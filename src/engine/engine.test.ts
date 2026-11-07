@@ -983,3 +983,165 @@ describe("arquivo não rastreado em reset, revert e cherry-pick", () => {
     });
   });
 });
+
+describe("git reset com arquivo", () => {
+  const dois = () => run(G.createRepo({ user: "voce" }), "git init", "echo a > a.txt", "echo x > x.txt", "git add .", 'git commit -m "um"', "echo 2 > b.txt", "git add .", 'git commit -m "dois"').repo;
+  // a.txt e x.txt alterados e em staging
+  const emStaging = () => run(dois(), "echo y >> a.txt", "echo y >> x.txt", "git add .").repo;
+  const staged = (r: Repo) => G.status(r).staged.map((f) => f.path);
+  const unstaged = (r: Repo) => G.status(r).unstaged.map((f) => f.path);
+
+  for (const cmd of ["git reset HEAD a.txt", "git reset HEAD -- a.txt", "git reset -- a.txt", "git reset a.txt"]) {
+    it(`${cmd} tira só o arquivo da staging, sem aviso e sem mexer na pasta`, () => {
+      const res = run(emStaging(), cmd);
+      expect(res.event).not.toBe("unsupported");
+      expect(res.ok).toBe(true);
+      expect(staged(res.repo)).toEqual(["x.txt"]);
+      expect(unstaged(res.repo)).toEqual(["a.txt"]);
+      expect(res.repo.workdir["a.txt"]).toBe("a\ny\n");
+    });
+  }
+  it("aceita mais de um arquivo", () => {
+    const r = run(dois(), "echo y >> a.txt", "echo y >> x.txt", "echo 3 > b.txt", "git add .", "git reset HEAD a.txt x.txt").repo;
+    expect(staged(r)).toEqual(["b.txt"]);
+  });
+  it("sem --, só o primeiro nome precisa existir", () => {
+    const res = run(emStaging(), "git reset a.txt nada.txt");
+    expect(res.ok).toBe(true);
+    expect(staged(res.repo)).toEqual(["x.txt"]);
+  });
+  it("git reset HEAD~1 arquivo põe na staging a versão do commit e não move a branch", () => {
+    const antes = dois();
+    for (const cmd of ["git reset HEAD~1 b.txt", "git reset HEAD~1 -- b.txt"]) {
+      const r = run(antes, cmd).repo;
+      expect(G.headSha(r)).toBe(G.headSha(antes));
+      expect(G.status(r).staged).toEqual([{ path: "b.txt", kind: "deleted" }]);
+      expect(G.status(r).untracked).toEqual(["b.txt"]);
+      expect(r.workdir["b.txt"]).toBe("2\n");
+    }
+  });
+  it("git reset HEAD~1 arquivo restaura a versão antiga na staging", () => {
+    const r = run(dois(), "echo novo > a.txt", "git add .", 'git commit -m "tres"', "git reset HEAD~1 a.txt").repo;
+    expect(r.index["a.txt"]).toBe("a\n");
+    expect(r.workdir["a.txt"]).toBe("novo\n");
+  });
+  it("arquivo novo em staging volta a não rastreado", () => {
+    for (const cmd of ["git reset n.txt", "git reset HEAD -- n.txt", "git reset HEAD~1 -- n.txt"]) {
+      const r = run(dois(), "echo n > n.txt", "git add .", cmd).repo;
+      expect(G.status(r).untracked).toEqual(["n.txt"]);
+    }
+  });
+  it("git reset . e git reset HEAD . tiram tudo", () => {
+    for (const cmd of ["git reset .", "git reset HEAD ."]) expect(staged(run(emStaging(), cmd).repo)).toEqual([]);
+  });
+  it("aceita pasta", () => {
+    const r = run(dois(), "echo 1 > src/a.txt", "echo 1 > src/b.txt", "git add .", "git reset HEAD src").repo;
+    expect(staged(r)).toEqual([]);
+    expect(G.status(r).untracked).toEqual(["src/a.txt", "src/b.txt"]);
+  });
+  it("--mixed com arquivo funciona, com aviso de que está obsoleto", () => {
+    const res = run(emStaging(), "git reset --mixed HEAD a.txt");
+    expect(res.ok).toBe(true);
+    expect(res.lines.join("\n")).toContain("--mixed");
+    expect(staged(res.repo)).toEqual(["x.txt"]);
+  });
+  it("arquivo depois de -- pode começar com hífen", () => {
+    const res = run(dois(), "echo y > -y.txt", "git add .", "git reset HEAD -- -y.txt");
+    expect(res.event).not.toBe("unsupported");
+    expect(G.status(res.repo).untracked).toEqual(["-y.txt"]);
+  });
+  it("nome de arquivo com branch de mesmo nome é aceito com referência ou com --", () => {
+    for (const cmd of ["git reset HEAD a.txt", "git reset -- a.txt"]) {
+      const res = run(emStaging(), "git branch a.txt", cmd);
+      expect(res.ok).toBe(true);
+      expect(staged(res.repo)).toEqual(["x.txt"]);
+    }
+  });
+  it("arquivo apagado da pasta é aceito com referência", () => {
+    const res = run(emStaging(), "rm a.txt", "git reset HEAD a.txt");
+    expect(res.ok).toBe(true);
+    expect(G.status(res.repo).unstaged).toEqual([{ path: "a.txt", kind: "deleted" }]);
+  });
+  it("tira o arquivo do conflito, mantém os marcadores e o merge segue em andamento", () => {
+    const conflito = run(
+      dois(),
+      "git switch -c f",
+      "echo F > x.txt",
+      "echo F > novo.txt",
+      "git add .",
+      'git commit -m "F"',
+      "git switch main",
+      "echo M > x.txt",
+      "echo M > novo.txt",
+      "git add .",
+      'git commit -m "M"',
+      "git merge f",
+    ).repo;
+    for (const cmd of ["git reset HEAD x.txt", "git restore --staged x.txt"]) {
+      const r = run(conflito, cmd).repo;
+      expect(r.inProgress?.kind).toBe("merge");
+      expect(r.conflicts).toEqual(["novo.txt"]);
+      expect(r.workdir["x.txt"]).toContain("<<<<<<<");
+      expect(r.index["x.txt"]).toBe("M\n");
+    }
+  });
+
+  describe("o que continua sem arquivo", () => {
+    it("git reset e git reset HEAD tiram tudo da staging", () => {
+      for (const cmd of ["git reset", "git reset HEAD"]) expect(staged(run(emStaging(), cmd).repo)).toEqual([]);
+    });
+    it("git reset HEAD~1 move a branch", () => {
+      const r = run(dois(), "git reset HEAD~1").repo;
+      expect(G.log(r)).toHaveLength(1);
+      expect(G.status(r).untracked).toEqual(["b.txt"]);
+    });
+    it("git reset --hard -- funciona como git reset --hard", () => {
+      const r = run(emStaging(), "git reset --hard --").repo;
+      expect(G.isCleanRepo(r)).toBe(true);
+    });
+  });
+
+  describe("o que continua recusado", () => {
+    for (const cmd of ["git reset --hard HEAD a.txt", "git reset --soft HEAD a.txt", "git reset --hard -- a.txt", "git reset --soft -- a.txt", "git reset --hard HEAD -- a.txt", "git reset --hard a.txt"]) {
+      it(`${cmd} é erro fatal e não muda nada`, () => {
+        const antes = emStaging();
+        const res = run(antes, cmd);
+        expect(res.ok).toBe(false);
+        expect(res.event).toBe("error");
+        expect(res.lines[0]).toContain("fatal");
+        expect(res.repo).toEqual(antes);
+      });
+    }
+    it("nome desconhecido sem -- é erro", () => {
+      const res = run(dois(), "git reset nada.txt");
+      expect(res.ok).toBe(false);
+      expect(res.lines.join("\n")).toContain("nada.txt");
+      expect(res.lines.join("\n")).toContain("--");
+    });
+    it("arquivo apagado da pasta, sem referência, é erro", () => {
+      const res = run(emStaging(), "rm a.txt", "git reset a.txt");
+      expect(res.ok).toBe(false);
+      expect(staged(res.repo)).toContain("a.txt");
+    });
+    it("nome igual ao de uma branch e ao de um arquivo é ambíguo", () => {
+      const res = run(emStaging(), "git branch a.txt", "git reset a.txt");
+      expect(res.ok).toBe(false);
+      expect(res.lines.join("\n")).toContain("--");
+      expect(staged(res.repo)).toEqual(["a.txt", "x.txt"]);
+    });
+    it("referência inválida antes de -- é erro", () => {
+      const res = run(emStaging(), "git reset refruim -- a.txt");
+      expect(res.ok).toBe(false);
+      expect(staged(res.repo)).toEqual(["a.txt", "x.txt"]);
+    });
+  });
+
+  it("nome desconhecido depois de uma referência ou de -- não é erro", () => {
+    for (const cmd of ["git reset HEAD nada.txt", "git reset HEAD -- nada.txt", "git reset -- nada.txt"]) {
+      const antes = emStaging();
+      const res = run(antes, cmd);
+      expect(res.ok).toBe(true);
+      expect(res.repo).toEqual(antes);
+    }
+  });
+});

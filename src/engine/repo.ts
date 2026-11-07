@@ -250,6 +250,16 @@ export function deleteFile(repo: Repo, path: string): Repo {
   return r;
 }
 
+/** O caminho está no que foi pedido: o próprio arquivo, uma pasta ou `.`, que é tudo. */
+export function matchesPath(path: string, spec: string): boolean {
+  const dir = spec.replace(/\/+$/, "");
+  return spec === "." || path === dir || path.startsWith(`${dir}/`);
+}
+
+export function existsInWorkdir(repo: Repo, spec: string): boolean {
+  return spec === "." || Object.keys(repo.workdir).some((p) => matchesPath(p, spec));
+}
+
 export function readFile(repo: Repo, path: string): string {
   if (!(path in repo.workdir)) throw new GitError(`cat: ${path}: arquivo não encontrado`);
   return repo.workdir[path];
@@ -323,15 +333,18 @@ export function add(repo: Repo, paths: string[]): Repo {
   return r;
 }
 
-export function unstage(repo: Repo, paths: string[]): Repo {
+/** Copia para a staging a versão dos arquivos em `source`, sem mover a branch. Sem `paths`, vale para todos. */
+export function unstage(repo: Repo, paths: string[], source?: string): Repo {
   assertInit(repo);
   const r = clone(repo);
-  const head = headTree(r);
-  const targets = paths.length === 0 || paths.includes(".") ? Object.keys({ ...r.index, ...head }) : paths;
+  const from = source ? r.commits[resolve(r, source)].tree : headTree(r);
+  const known = [...new Set([...Object.keys(r.index), ...Object.keys(from), ...r.conflicts])];
+  const targets = paths.length ? known.filter((p) => paths.some((spec) => matchesPath(p, spec))) : known;
   for (const p of targets) {
-    if (p in head) r.index[p] = head[p];
+    if (p in from) r.index[p] = from[p];
     else delete r.index[p];
   }
+  if (paths.length) r.conflicts = r.conflicts.filter((c) => !targets.includes(c));
   return r;
 }
 

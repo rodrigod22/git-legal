@@ -126,7 +126,7 @@ const HELP = [
   "<b>Comandos git suportados</b>",
   "  init, status, add, commit -m, log [--oneline --graph --all], diff [--staged]",
   "  branch [-d -D -m], checkout [-b], switch [-c], merge [--abort --no-ff]",
-  "  rebase [--continue --abort], reset [--soft --hard], revert, cherry-pick",
+  "  rebase [--continue --abort], reset [--soft --hard] [<ref>] [--] [arquivo], revert, cherry-pick",
   "  stash [pop list apply drop], restore [--staged], rm, show, reflog",
   "  fetch, pull [--rebase], push [-u origin <branch>], remote -v",
   "",
@@ -220,6 +220,30 @@ function flags(args: string[], values: string[] = []) {
   return { f, pos };
 }
 
+/** Como flags(), mas o que vem depois de `--` é sempre arquivo, mesmo com cara de opção. Sem `--`, paths é null. */
+function flagsAndPaths(args: string[]) {
+  const dashes = args.indexOf("--");
+  if (dashes === -1) return { ...flags(args), paths: null };
+  return { ...flags(args.slice(0, dashes)), paths: args.slice(dashes + 1) };
+}
+
+/** Sem `--`, um nome precisa ser só referência ou só arquivo da pasta, como no Git. */
+function isRevision(repo: Repo, name: string, sub: string): boolean {
+  const onDisk = G.existsInWorkdir(repo, name);
+  let unknown: GitError | null = null;
+  try {
+    G.resolve(repo, name);
+  } catch (e) {
+    if (!(e instanceof GitError)) throw e;
+    unknown = e;
+  }
+  if (!unknown && onDisk) {
+    throw new GitError(`fatal: '${name}' é ao mesmo tempo uma referência e um arquivo.\ndica: use '--' para separar. Referência: git ${sub} ${name} --   Arquivo: git ${sub} -- ${name}`);
+  }
+  if (unknown && !onDisk) throw new GitError(`${unknown.message}\ndica: se é um arquivo, ele não está na pasta. Use '--' antes do nome: git ${sub} -- ${name}`);
+  return !unknown;
+}
+
 interface OptionSpec {
   flags: string[];
   /** opções seguidas de um valor */
@@ -242,7 +266,7 @@ const OPTIONS: Record<string, OptionSpec> = {
   switch: { flags: ["-c", "--create", "-f", "--force", "--detach"] },
   merge: { flags: ["--abort", "--continue", "--no-ff", "--no-edit"] },
   rebase: { flags: ["--abort", "--continue"] },
-  reset: { flags: ["--soft", "--mixed", "--hard"] },
+  reset: { flags: ["--soft", "--mixed", "--hard", "--"] },
   revert: { flags: ["--abort", "--no-edit"] },
   "cherry-pick": { flags: ["--abort"] },
   stash: { flags: [], values: ["-m"] },
@@ -261,6 +285,7 @@ function unsupportedOptions(args: string[], spec: OptionSpec): string[] {
   const bad: string[] = [];
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
+    if (a === "--" && spec.flags.includes(a)) break;
     if (spec.values?.includes(a)) i++;
     else if (a.startsWith("-") && a !== "-" && !spec.flags.includes(a) && !spec.pattern?.test(a)) bad.push(a);
   }
@@ -432,12 +457,17 @@ function runGit(repo: Repo, args: string[]): CommandResult {
       return { repo: res.repo, lines: [`<g>Successfully rebased and updated ${esc(G.currentBranch(res.repo) ?? "HEAD")}.</g>`], ok: true, event: "rebase" };
     }
     case "reset": {
-      const { f, pos } = flags(rest);
+      const { f, pos, paths: afterDashes } = flagsAndPaths(rest);
       const mode = f.has("--hard") ? "hard" : f.has("--soft") ? "soft" : "mixed";
-      if (!pos[0] && mode === "mixed") return { repo: G.unstage(repo, []), lines: ["<d>Index restaurado (arquivos removidos da área de staging).</d>"], ok: true };
-      const target = pos[0] ?? "HEAD";
-      if (target in repo.workdir && !(target in repo.branches)) return { repo: G.unstage(repo, [target]), lines: [], ok: true };
-      const r = G.reset(repo, target, mode);
+      const rev = afterDashes || (pos[0] && isRevision(repo, pos[0], "reset")) ? pos[0] : undefined;
+      const paths = [...(rev ? pos.slice(1) : pos), ...(afterDashes ?? [])];
+      if (paths.length) {
+        if (mode !== "mixed") throw new GitError(`fatal: não é possível usar --${mode} com arquivos.\ndica: 'git reset ${rev ?? "HEAD"} -- <arquivo>' tira o arquivo da staging, e 'git restore <arquivo>' descarta a alteração na pasta.`);
+        const lines = f.has("--mixed") ? ["<y>aviso: --mixed com arquivo está obsoleto. Use 'git reset -- <arquivo>'.</y>"] : [];
+        return { repo: G.unstage(repo, paths, rev), lines, ok: true };
+      }
+      if (!rev && mode === "mixed") return { repo: G.unstage(repo, []), lines: ["<d>Index restaurado (arquivos removidos da área de staging).</d>"], ok: true };
+      const r = G.reset(repo, rev ?? "HEAD", mode);
       const lines = mode === "hard" ? [`HEAD is now at <y>${G.short(G.headSha(r)!)}</y> ${esc(r.commits[G.headSha(r)!].message)}`] : [];
       return { repo: r, lines, ok: true, event: "reset" };
     }
