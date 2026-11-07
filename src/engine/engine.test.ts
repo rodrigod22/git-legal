@@ -547,3 +547,229 @@ describe("stash e reset", () => {
     expect(Object.keys(r.repo.workdir)).toEqual(["README.md"]);
   });
 });
+
+describe("arquivo não rastreado no rebase", () => {
+  // f e main divergem a partir do primeiro commit
+  const div = () =>
+    run(base(), "git switch -c f", "echo f > f.txt", "git add .", 'git commit -m "f"', "git switch main", "echo m > m.txt", "git add .", 'git commit -m "m"', "git switch f").repo;
+  // f e main mudam x.txt; o segundo commit de f cria p.txt
+  const conf = () =>
+    run(
+      base(),
+      "echo x > x.txt",
+      "git add .",
+      'git commit -m "x"',
+      "git switch -c f",
+      "echo F > x.txt",
+      "git add .",
+      'git commit -m "F"',
+      "echo p > p.txt",
+      "git add .",
+      'git commit -m "P"',
+      "git switch main",
+      "echo M > x.txt",
+      "git add .",
+      'git commit -m "M"',
+      "git switch f",
+    ).repo;
+  // f cria e depois apaga u.txt: na ponta ele não existe, mas o rebase passa por ele
+  const meio = () =>
+    run(
+      base(),
+      "git switch -c f",
+      "echo U > u.txt",
+      "git add .",
+      'git commit -m "cria u"',
+      "rm u.txt",
+      "git add .",
+      'git commit -m "tira u"',
+      "echo f > f.txt",
+      "git add .",
+      'git commit -m "f"',
+      "git switch main",
+      "echo m > m.txt",
+      "git add .",
+      'git commit -m "m"',
+      "git switch f",
+    ).repo;
+  const mensagens = (r: Repo) => G.log(r).map((e) => e.commit.message);
+  // main tem um commit local e o colega enviou n.txt
+  const comColega = () => {
+    let r = G.addRemote(base());
+    r = G.push(r, { branch: "main" }).repo;
+    r = G.remoteCommit(r, "main", "ana", "colega", (t) => ({ ...t, "n.txt": "n\n" }));
+    return run(r, "echo l > l.txt", "git add .", 'git commit -m "local"').repo;
+  };
+
+  it("mantém o arquivo ao concluir", () => {
+    const r = run(div(), "echo meu > u.txt", "git rebase main").repo;
+    expect(G.status(r).branch).toBe("f");
+    expect(r.workdir["u.txt"]).toBe("meu\n");
+    expect(G.status(r).untracked).toEqual(["u.txt"]);
+  });
+  it("mantém o arquivo ao parar em conflito, e o arquivo em conflito não aparece como não rastreado", () => {
+    const r = run(conf(), "echo meu > u.txt", "git rebase main").repo;
+    expect(r.rebase).not.toBeNull();
+    expect(r.workdir["u.txt"]).toBe("meu\n");
+    expect(G.status(r).conflicts).toEqual(["x.txt"]);
+    expect(G.status(r).untracked).toEqual(["u.txt"]);
+  });
+  it("mantém o arquivo no --abort", () => {
+    const r = run(conf(), "echo meu > u.txt", "git rebase main", "git rebase --abort").repo;
+    expect(r.rebase).toBeNull();
+    expect(r.workdir["u.txt"]).toBe("meu\n");
+    expect(r.workdir["p.txt"]).toBe("p\n");
+  });
+  it("mantém o arquivo no --continue", () => {
+    const r = run(conf(), "echo meu > u.txt", "git rebase main", "echo FM > x.txt", "git add x.txt", "git rebase --continue").repo;
+    expect(r.rebase).toBeNull();
+    expect(r.workdir["u.txt"]).toBe("meu\n");
+    expect(r.workdir["x.txt"]).toBe("FM\n");
+    expect(r.workdir["p.txt"]).toBe("p\n");
+  });
+  it("mantém o arquivo criado com o rebase já parado", () => {
+    const r = run(conf(), "git rebase main", "echo meu > u.txt", "echo FM > x.txt", "git add x.txt", "git rebase --continue").repo;
+    expect(r.rebase).toBeNull();
+    expect(r.workdir["u.txt"]).toBe("meu\n");
+  });
+  it("git pull --rebase mantém o arquivo", () => {
+    const r = run(comColega(), "echo meu > u.txt", "git pull --rebase").repo;
+    expect(mensagens(r).slice(0, 2)).toEqual(["local", "colega"]);
+    expect(r.workdir["u.txt"]).toBe("meu\n");
+    expect(r.workdir["n.txt"]).toBe("n\n");
+  });
+  it("git pull --rebase em fast-forward mantém o arquivo", () => {
+    let r = G.addRemote(base());
+    r = G.push(r, { branch: "main" }).repo;
+    r = G.remoteCommit(r, "main", "ana", "colega", (t) => ({ ...t, "n.txt": "n\n" }));
+    r = run(r, "echo meu > u.txt", "git pull --rebase").repo;
+    expect(r.workdir["u.txt"]).toBe("meu\n");
+    expect(r.workdir["n.txt"]).toBe("n\n");
+  });
+
+  describe("colisão com a base", () => {
+    it("recusa e deixa tudo como estava", () => {
+      const antes = run(div(), "echo meu > m.txt").repo;
+      const res = run(antes, "git rebase main");
+      expect(res.ok).toBe(false);
+      expect(res.lines.join("\n")).toContain("m.txt");
+      expect(res.repo).toEqual(antes);
+    });
+    it("recusa mesmo com conteúdo idêntico", () => {
+      const res = run(div(), "echo m > m.txt", "git rebase main");
+      expect(res.ok).toBe(false);
+      expect(res.repo.rebase).toBeNull();
+    });
+    it("recusa no rebase que seria fast-forward", () => {
+      const antes = run(base(), "git switch -c f", "git switch main", "echo m > m.txt", "git add .", 'git commit -m "m"', "git switch f", "echo meu > m.txt").repo;
+      const res = run(antes, "git rebase main");
+      expect(res.ok).toBe(false);
+      expect(res.repo).toEqual(antes);
+    });
+    it("git pull --rebase recusa, mas o fetch fica feito", () => {
+      const res = run(comColega(), "echo meu > n.txt", "git pull --rebase");
+      expect(res.ok).toBe(false);
+      expect(res.lines.join("\n")).toContain("n.txt");
+      expect(res.repo.workdir["n.txt"]).toBe("meu\n");
+      expect(res.repo.rebase).toBeNull();
+      expect(mensagens(res.repo)[0]).toBe("local");
+      expect(res.repo.commits[res.repo.remoteRefs["origin/main"]].message).toBe("colega");
+    });
+    it("git pull --rebase com alteração local recusa antes do fetch", () => {
+      const res = run(comColega(), 'echo "# outro" > README.md', "git pull --rebase");
+      expect(res.ok).toBe(false);
+      expect(res.repo.commits[res.repo.remoteRefs["origin/main"]].message).toBe("primeiro commit");
+    });
+    it("rebase já atualizado não olha colisão", () => {
+      const res = run(base(), "git switch -c f", "git rebase main");
+      expect(res.ok).toBe(true);
+      expect(res.lines.join("\n")).toContain("up to date");
+    });
+  });
+
+  describe("colisão no meio do rebase", () => {
+    it("para antes do commit, com o rebase em andamento e o arquivo intacto", () => {
+      const res = run(meio(), "echo meu > u.txt", "git rebase main");
+      expect(res.ok).toBe(false);
+      expect(res.event).toBe("error");
+      expect(res.lines.join("\n")).toContain("u.txt");
+      expect(res.lines.join("\n")).toContain("--continue");
+      expect(res.repo.rebase).not.toBeNull();
+      expect(res.repo.head.type).toBe("detached");
+      expect(res.repo.conflicts).toEqual([]);
+      expect(res.repo.workdir["u.txt"]).toBe("meu\n");
+      expect(res.repo.workdir["m.txt"]).toBe("m\n");
+      expect(G.status(res.repo).untracked).toEqual(["u.txt"]);
+      expect(mensagens(res.repo)[0]).toBe("m");
+    });
+    it("--continue para de novo enquanto o arquivo estiver lá", () => {
+      const res = run(meio(), "echo meu > u.txt", "git rebase main", "git rebase --continue");
+      expect(res.ok).toBe(false);
+      expect(res.repo.rebase).not.toBeNull();
+      expect(res.repo.workdir["u.txt"]).toBe("meu\n");
+    });
+    it("--continue conclui depois que o arquivo sai do caminho", () => {
+      const res = run(meio(), "echo meu > u.txt", "git rebase main", "rm u.txt", "git rebase --continue");
+      expect(res.ok).toBe(true);
+      expect(res.repo.rebase).toBeNull();
+      expect(G.status(res.repo).branch).toBe("f");
+      expect(mensagens(res.repo).slice(0, 4)).toEqual(["f", "tira u", "cria u", "m"]);
+      expect(Object.keys(res.repo.workdir).sort()).toEqual(["README.md", "f.txt", "m.txt"]);
+    });
+    it("--abort volta à ponta original e mantém o arquivo", () => {
+      const r = run(meio(), "echo meu > u.txt", "git rebase main", "git rebase --abort").repo;
+      expect(r.rebase).toBeNull();
+      expect(G.status(r).branch).toBe("f");
+      expect(mensagens(r)[0]).toBe("f");
+      expect(r.workdir["u.txt"]).toBe("meu\n");
+    });
+    it("--continue recusa com o arquivo em staging, sem perder o conteúdo", () => {
+      const res = run(meio(), "echo meu > u.txt", "git rebase main", "git add u.txt", "git rebase --continue");
+      expect(res.ok).toBe(false);
+      expect(res.repo.rebase).not.toBeNull();
+      expect(res.repo.workdir["u.txt"]).toBe("meu\n");
+      expect(G.status(res.repo).staged.map((f) => f.path)).toEqual(["u.txt"]);
+    });
+    it("para no próximo commit se o arquivo foi criado durante um conflito", () => {
+      const res = run(conf(), "git rebase main", "echo FM > x.txt", "git add x.txt", "echo meu > p.txt", "git rebase --continue");
+      expect(res.ok).toBe(false);
+      expect(res.repo.rebase).not.toBeNull();
+      expect(res.repo.workdir["p.txt"]).toBe("meu\n");
+      expect(mensagens(res.repo)[0]).toBe("F");
+    });
+    it("git pull --rebase também para no meio", () => {
+      let r = G.addRemote(base());
+      r = G.push(r, { branch: "main" }).repo;
+      r = G.remoteCommit(r, "main", "ana", "colega", (t) => ({ ...t, "n.txt": "n\n" }));
+      r = run(r, "echo U > u.txt", "git add .", 'git commit -m "cria u"', "rm u.txt", "git add .", 'git commit -m "tira u"', "echo meu > u.txt").repo;
+      const res = run(r, "git pull --rebase");
+      expect(res.ok).toBe(false);
+      expect(res.repo.rebase).not.toBeNull();
+      expect(res.repo.workdir["u.txt"]).toBe("meu\n");
+      const fim = run(res.repo, "rm u.txt", "git rebase --continue");
+      expect(fim.ok).toBe(true);
+      expect(mensagens(fim.repo).slice(0, 3)).toEqual(["tira u", "cria u", "colega"]);
+    });
+  });
+
+  describe("--abort", () => {
+    it("recusa se um arquivo não rastreado colide com a ponta original", () => {
+      const parado = run(conf(), "git rebase main", "echo meu > p.txt").repo;
+      const res = run(parado, "git rebase --abort");
+      expect(res.ok).toBe(false);
+      expect(res.lines.join("\n")).toContain("p.txt");
+      expect(res.repo).toEqual(parado);
+    });
+    it("apaga o arquivo novo que estava em staging", () => {
+      const r = run(conf(), "git rebase main", "echo n > n.txt", "git add n.txt", "git rebase --abort").repo;
+      expect(r.workdir).not.toHaveProperty("n.txt");
+    });
+  });
+
+  it("não deixa arquivo da base nem da branch para trás ao concluir", () => {
+    const r = run(div(), "git rebase main").repo;
+    expect(Object.keys(r.workdir).sort()).toEqual(["README.md", "f.txt", "m.txt"]);
+    expect(G.status(r).untracked).toEqual([]);
+    expect(G.isCleanRepo(r)).toBe(true);
+  });
+});

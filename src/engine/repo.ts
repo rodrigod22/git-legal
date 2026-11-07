@@ -185,6 +185,37 @@ function assertClean(repo: Repo, what: string) {
   }
 }
 
+/** Arquivo em conflito sai do index, mas continua rastreado. */
+function untrackedPaths(repo: Repo): string[] {
+  return Object.keys(repo.workdir)
+    .filter((p) => !(p in repo.index) && !repo.conflicts.includes(p))
+    .sort();
+}
+
+function untrackedCollisions(repo: Repo, tree: Tree): string[] {
+  return untrackedPaths(repo).filter((p) => p in tree);
+}
+
+function collisionMessage(files: string[], what: string): string {
+  return `erro: estes arquivos não rastreados seriam sobrescritos por ${what}:\n${files.map((p) => `\t${p}`).join("\n")}\ndica: mova ou apague esses arquivos antes do ${what}.`;
+}
+
+/** Como no Git real, a recusa vale mesmo com o conteúdo idêntico. */
+function assertNoUntrackedCollision(repo: Repo, tree: Tree, what: string) {
+  const files = untrackedCollisions(repo, tree);
+  if (files.length) throw new GitError(collisionMessage(files, what));
+}
+
+/** Troca a staging e a parte rastreada da pasta por `tree`. O que não é rastreado fica, salvo se `tree` tiver o mesmo caminho. */
+function replaceTracked(r: Repo, tree: Tree, conflicts: string[] = []) {
+  const workdir: Tree = { ...tree };
+  for (const p of untrackedPaths(r)) if (!(p in tree)) workdir[p] = r.workdir[p];
+  r.workdir = workdir;
+  r.index = { ...tree };
+  for (const p of conflicts) delete r.index[p];
+  r.conflicts = conflicts;
+}
+
 function makeCommit(repo: Repo, parents: Sha[], message: string, tree: Tree, author = repo.user.name): Commit {
   const timestamp = repo.clock + 1;
   const sha = hashString(JSON.stringify({ parents, message, tree, author, timestamp }));
@@ -239,9 +270,7 @@ export function status(repo: Repo): Status {
   const head = headTree(repo);
   const staged = treeDiff(head, repo.index).filter((f) => !repo.conflicts.includes(f.path));
   const unstaged = treeDiff(repo.index, repo.workdir).filter((f) => f.kind !== "new" && !repo.conflicts.includes(f.path));
-  const untracked = Object.keys(repo.workdir)
-    .filter((p) => !(p in repo.index))
-    .sort();
+  const untracked = untrackedPaths(repo);
   const branch = currentBranch(repo);
   let ahead = 0;
   let behind = 0;
@@ -487,10 +516,7 @@ function assertMergeKeepsLocalWork(repo: Repo, merged: Tree, conflicts: string[]
   if (dirty.length) {
     throw new GitError(`erro: suas alterações locais seriam sobrescritas por merge:\n${dirty.map((p) => `\t${p}`).join("\n")}\ndica: faça commit ou 'git stash' antes do merge.`);
   }
-  const untracked = s.untracked.filter((p) => p in merged);
-  if (untracked.length) {
-    throw new GitError(`erro: estes arquivos não rastreados seriam sobrescritos por merge:\n${untracked.map((p) => `\t${p}`).join("\n")}\ndica: mova ou apague esses arquivos antes do merge.`);
-  }
+  assertNoUntrackedCollision(repo, merged, "merge");
 }
 
 export function merge(repo: Repo, ref: string, opts: { noFf?: boolean; message?: string } = {}): MergeResult {
@@ -561,9 +587,12 @@ export function abortInProgress(repo: Repo, kind: InProgress["kind"]): Repo {
 
 export interface RebaseResult {
   repo: Repo;
-  kind: "up-to-date" | "fast-forward" | "rebased" | "conflict" | "done";
+  /** blocked: um arquivo não rastreado está no caminho. Antes de começar, nada muda; no meio, o rebase fica parado. */
+  kind: "up-to-date" | "fast-forward" | "rebased" | "conflict" | "done" | "blocked";
   applied: number;
   conflicts: string[];
+  /** explicação de um resultado blocked */
+  message?: string;
 }
 
 function applyCommitOnto(r: Repo, c: Commit, ontoTree: Tree): { tree: Tree; conflicts: string[] } {
@@ -578,13 +607,16 @@ function continueRebaseLoop(r: Repo): RebaseResult {
     const c = r.commits[sha];
     const ontoTree = r.commits[rb.head].tree;
     const { tree, conflicts } = applyCommitOnto(r, c, ontoTree);
+    const collisions = untrackedCollisions(r, tree);
+    if (collisions.length) {
+      r.head = { type: "detached", sha: rb.head };
+      const message = `${collisionMessage(collisions, "rebase")}\nO rebase parou antes do commit ${short(sha)} (${c.message}).\ndica: depois disso, 'git rebase --continue' tenta de novo. Para desistir: 'git rebase --abort'.`;
+      return { repo: r, kind: "blocked", applied: 0, conflicts: [], message };
+    }
+    replaceTracked(r, tree, conflicts);
     if (conflicts.length) {
       rb.current = sha;
       r.head = { type: "detached", sha: rb.head };
-      r.workdir = { ...tree };
-      r.index = { ...tree };
-      for (const p of conflicts) delete r.index[p];
-      r.conflicts = conflicts;
       return { repo: r, kind: "conflict", applied: 0, conflicts };
     }
     const nc = makeCommit(r, [rb.head], c.message, tree, c.author);
@@ -601,9 +633,6 @@ function continueRebaseLoop(r: Repo): RebaseResult {
   } else {
     r.head = { type: "detached", sha: rb.head };
   }
-  r.workdir = { ...r.commits[rb.head].tree };
-  r.index = { ...r.commits[rb.head].tree };
-  r.conflicts = [];
   r.rebase = null;
   pushReflog(r, "rebase: finished");
   return { repo: r, kind: "done", applied: 0, conflicts: [] };
@@ -619,6 +648,8 @@ export function rebase(repo: Repo, upstreamRef: string): RebaseResult {
   if (upstream === head || isAncestor(repo, upstream, head)) {
     return { repo, kind: "up-to-date", applied: 0, conflicts: [] };
   }
+  const collisions = untrackedCollisions(repo, repo.commits[upstream].tree);
+  if (collisions.length) return { repo, kind: "blocked", applied: 0, conflicts: [], message: collisionMessage(collisions, "rebase") };
   const r = clone(repo);
   if (isAncestor(r, head, upstream)) {
     switchTree(r, upstream, "rebase");
@@ -630,6 +661,7 @@ export function rebase(repo: Repo, upstreamRef: string): RebaseResult {
     .filter((c) => c.parents.length <= 1) // merges são descartados no rebase simples, como no git
     .map((c) => c.sha);
   r.rebase = { branch: currentBranch(r), originalTip: head, onto: upstream, todo, current: null, head: upstream };
+  replaceTracked(r, r.commits[upstream].tree);
   const res = continueRebaseLoop(r);
   if (res.kind === "done") return { ...res, kind: "rebased", applied: todo.length };
   return res;
@@ -644,31 +676,34 @@ export function rebaseContinue(repo: Repo): RebaseResult {
   }
   const r = clone(repo);
   const rb = r.rebase!;
-  const cur = r.commits[rb.current!];
-  const stagedChanges = treeDiff(r.commits[rb.head].tree, r.index);
-  if (stagedChanges.length) {
-    const nc = makeCommit(r, [rb.head], cur.message, r.index, cur.author);
-    r.commits[nc.sha] = nc;
-    r.clock = nc.timestamp;
-    rb.head = nc.sha;
+  if (rb.current) {
+    const cur = r.commits[rb.current];
+    const stagedChanges = treeDiff(r.commits[rb.head].tree, r.index);
+    if (stagedChanges.length) {
+      const nc = makeCommit(r, [rb.head], cur.message, r.index, cur.author);
+      r.commits[nc.sha] = nc;
+      r.clock = nc.timestamp;
+      rb.head = nc.sha;
+    }
+    rb.todo.shift();
+    rb.current = null;
+  } else if (!isClean(r)) {
+    // parado por colisão: nenhum commit ficou pela metade, e o próximo sobrescreveria essas alterações
+    throw new GitError("erro: há alterações pendentes, e o rebase parou antes de aplicar o próximo commit.\ndica: 'git status' mostra o que mudou. 'git restore --staged <arquivo>' tira da staging.");
   }
-  rb.todo.shift();
-  rb.current = null;
-  const res = continueRebaseLoop(r);
-  return res;
+  return continueRebaseLoop(r);
 }
 
 export function rebaseAbort(repo: Repo): Repo {
   if (!repo.rebase) throw new GitError("fatal: não há rebase em andamento");
+  assertNoUntrackedCollision(repo, repo.commits[repo.rebase.originalTip].tree, "rebase --abort");
   const r = clone(repo);
   const rb = r.rebase!;
   if (rb.branch) {
     r.branches[rb.branch] = rb.originalTip;
     r.head = { type: "branch", name: rb.branch };
   } else r.head = { type: "detached", sha: rb.originalTip };
-  r.workdir = { ...r.commits[rb.originalTip].tree };
-  r.index = { ...r.commits[rb.originalTip].tree };
-  r.conflicts = [];
+  replaceTracked(r, r.commits[rb.originalTip].tree);
   r.rebase = null;
   return r;
 }
@@ -808,8 +843,10 @@ export function push(repo: Repo, opts: { setUpstream?: boolean; force?: boolean;
 
 export interface PullResult {
   repo: Repo;
-  kind: "up-to-date" | "fast-forward" | "merge-commit" | "conflict" | "rebased";
+  kind: "up-to-date" | "fast-forward" | "merge-commit" | "conflict" | "rebased" | "blocked";
   conflicts: string[];
+  /** explicação de um resultado blocked */
+  message?: string;
 }
 
 export function pull(repo: Repo, opts: { rebase?: boolean } = {}): PullResult {
@@ -822,6 +859,7 @@ export function pull(repo: Repo, opts: { rebase?: boolean } = {}): PullResult {
   if (!r.remoteRefs[ref]) throw new GitError(`fatal: a branch '${branch}' não existe no remoto 'origin'`);
   if (opts.rebase) {
     const res = rebase(r, ref);
+    if (res.kind === "blocked") return { repo: res.repo, kind: "blocked", conflicts: [], message: res.message };
     if (res.kind === "conflict") return { repo: res.repo, kind: "conflict", conflicts: res.conflicts };
     if (res.kind === "up-to-date") return { repo: res.repo, kind: "up-to-date", conflicts: [] };
     if (res.kind === "fast-forward") return { repo: res.repo, kind: "fast-forward", conflicts: [] };

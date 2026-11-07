@@ -32,7 +32,7 @@ export interface RebaseState {
   onto: Sha;
   /** commits ainda por aplicar (ordem de aplicação) */
   todo: Sha[];
-  /** commit atualmente parado em conflito */
+  /** commit parado em conflito; null quando o rebase parou antes dele, por causa de um arquivo não rastreado */
   current: Sha | null;
   /** sha atual de HEAD durante o rebase */
   head: Sha;

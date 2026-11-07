@@ -133,6 +133,10 @@ const HELP = [
   "<d>Um comando por vez: &&, ||, | e ; funcionam no seu terminal, mas não aqui.</d>",
 ];
 
+function failure(repo: Repo, message: string): CommandResult {
+  return { repo, lines: message.split("\n").map((l) => `<r>${esc(l)}</r>`), ok: false, event: "error" };
+}
+
 export function execute(repo: Repo, input: string): CommandResult {
   const raw = input.trim();
   if (!raw) return { repo, lines: [], ok: true };
@@ -198,7 +202,7 @@ export function execute(repo: Repo, input: string): CommandResult {
         throw new GitError(`${cmd}: comando não encontrado. Digite <c>help</c> para ver os comandos disponíveis.`);
     }
   } catch (e) {
-    if (e instanceof GitError) return { repo, lines: e.message.split("\n").map((l) => `<r>${esc(l)}</r>`), ok: false, event: "error" };
+    if (e instanceof GitError) return failure(repo, e.message);
     throw e;
   }
 }
@@ -409,6 +413,7 @@ function runGit(repo: Repo, args: string[]): CommandResult {
         if (!pos[0]) throw new GitError("fatal: informe a base. Ex.: git rebase main");
         res = G.rebase(repo, pos[0]);
       }
+      if (res.kind === "blocked") return failure(res.repo, res.message!);
       if (res.kind === "up-to-date") return { repo: res.repo, lines: ["Current branch is up to date. <d>(nada a reaplicar)</d>"], ok: true };
       if (res.kind === "fast-forward") return { repo: res.repo, lines: ["<g>Fast-forward</g> <d>— sua branch apenas avançou para a base.</d>"], ok: true, event: "fast-forward" };
       if (res.kind === "conflict") {
@@ -524,6 +529,7 @@ function runGit(repo: Repo, args: string[]): CommandResult {
     case "pull": {
       const { f } = flags(rest);
       const res = G.pull(repo, { rebase: f.has("--rebase") || f.has("-r") });
+      if (res.kind === "blocked") return failure(res.repo, res.message!);
       if (res.kind === "up-to-date") return { repo: res.repo, lines: ["Already up to date."], ok: true, event: "pull" };
       if (res.kind === "fast-forward") return { repo: res.repo, lines: ["From origin", "<g>Fast-forward</g> <d>— sua branch avançou para o estado do remoto.</d>"], ok: true, event: "pull" };
       if (res.kind === "rebased") return { repo: res.repo, lines: ["From origin", `<g>Successfully rebased and updated ${esc(G.currentBranch(res.repo)!)}.</g>`], ok: true, event: "rebase" };
