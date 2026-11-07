@@ -279,7 +279,7 @@ export function add(repo: Repo, paths: string[]): Repo {
     if (p in r.workdir) {
       if (r.conflicts.includes(p) && hasConflictMarkers(r.workdir[p])) {
         throw new GitError(
-          `erro: '${p}' ainda contém marcadores de conflito (<<<<<<<, =======, >>>>>>>).\ndica: edite o arquivo, escolha o conteúdo final e remova os marcadores antes do 'git add'.`,
+          `erro: '${p}' ainda contém marcadores de conflito (<<<<<<<, =======, >>>>>>>).\ndica: edite o arquivo, escolha o conteúdo final e remova os marcadores antes do 'git add'.\natenção: este bloqueio é uma proteção do Dojo. O Git real aceitaria o 'git add', e os marcadores iriam para o commit.`,
         );
       }
       r.index[p] = r.workdir[p];

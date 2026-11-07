@@ -145,6 +145,16 @@ const textoDe = (id: string) => {
   return [...mission.story, ...(mission.concept?.points ?? []), ...mission.hints].join("\n");
 };
 
+describe("diferenças em relação ao Git real", () => {
+  it("a missão de conflito avisa que o Git real aceita git add com marcadores", () => {
+    expect(textoDe("primeiro-conflito")).toMatch(/Git real.*`git add`.*marcadores/);
+  });
+  it("o erro do git add com marcadores também explica a diferença", () => {
+    const s = play("primeiro-conflito", ["git merge feature/titulo", "git add README.md"]);
+    expect(s.lines.at(-1)?.text + (s.lines.at(-2)?.text ?? "")).toContain("Git real");
+  });
+});
+
 describe("XP", () => {
   it("o máximo é a soma de todas as missões com 3 estrelas", () => {
     const tresEstrelas = starsFor(0, 0);

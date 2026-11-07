@@ -26,6 +26,7 @@ export const conflitos: Module = {
           "`=======` … `>>>>>>> outra` é o **lado que está chegando**.",
           "Resolver = editar o arquivo até ficar do jeito certo **e apagar os três marcadores**.",
           "Depois: `git add <arquivo>` (marca como resolvido) e `git commit` (fecha o merge).",
+          "**Atenção:** no Git real, `git add` aceita o arquivo mesmo com marcadores, e eles vão parar no commit. O Dojo bloqueia para proteger você. Fora daqui, confira o arquivo antes do `git add`.",
         ],
       },
       setup: () =>
