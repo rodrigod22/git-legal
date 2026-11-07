@@ -558,7 +558,7 @@ export function merge(repo: Repo, ref: string, opts: { noFf?: boolean; message?:
   r.index = { ...tree };
   for (const c of conflicts) delete r.index[c];
   r.conflicts = conflicts;
-  r.inProgress = { kind: "merge", other: target, message, label: ref, touched };
+  r.inProgress = { kind: "merge", other: target, message, label: ref };
   if (conflicts.length) return { repo: r, kind: "conflict", conflicts, from: head, to: target };
   const done = commit(r, message);
   return { repo: done, kind: "merge-commit", conflicts: [], from: head, to: target };
@@ -566,16 +566,14 @@ export function merge(repo: Repo, ref: string, opts: { noFf?: boolean; message?:
 
 export function abortInProgress(repo: Repo, kind: InProgress["kind"]): Repo {
   if (!repo.inProgress || repo.inProgress.kind !== kind) throw new GitError(`fatal: não há ${kind} em andamento`);
+  assertNoUntrackedCollision(repo, headTree(repo), `${kind} --abort`);
   const r = clone(repo);
   const head = headTree(r);
-  const touched = r.inProgress!.touched;
-  if (touched) {
-    for (const p of touched) {
-      if (p in head) r.workdir[p] = head[p];
-      else delete r.workdir[p];
-    }
-  } else {
-    r.workdir = { ...head };
+  // como git reset --merge: volta o que está em conflito ou na staging; o resto do trabalho local fica
+  for (const p of new Set([...Object.keys(r.index), ...Object.keys(head), ...r.conflicts])) {
+    if (r.index[p] === head[p] && !r.conflicts.includes(p)) continue;
+    if (p in head) r.workdir[p] = head[p];
+    else delete r.workdir[p];
   }
   r.index = { ...head };
   r.conflicts = [];
@@ -717,10 +715,9 @@ export function reset(repo: Repo, ref: string, mode: "soft" | "mixed" | "hard" =
   if (r.head.type === "branch") r.branches[r.head.name] = sha;
   else r.head = { type: "detached", sha };
   const tree = r.commits[sha].tree;
-  if (mode !== "soft") r.index = { ...tree };
+  if (mode === "mixed") r.index = { ...tree };
   if (mode === "hard") {
-    r.workdir = { ...tree };
-    r.conflicts = [];
+    replaceTracked(r, tree);
     r.inProgress = null;
   }
   pushReflog(r, `reset: moving to ${ref}`);
@@ -738,11 +735,9 @@ export function revert(repo: Repo, ref: string): MergeResult {
   const r = clone(repo);
   const parentTree = c.parents[0] ? r.commits[c.parents[0]].tree : {};
   const { tree, conflicts } = mergeTrees(c.tree, r.commits[head].tree, parentTree, { ours: "HEAD", theirs: `parent of ${short(sha)}` });
+  assertNoUntrackedCollision(r, tree, "revert");
   const message = `Revert "${c.message}"\n\nThis reverts commit ${sha}.`;
-  r.workdir = { ...tree };
-  r.index = { ...tree };
-  for (const p of conflicts) delete r.index[p];
-  r.conflicts = conflicts;
+  replaceTracked(r, tree, conflicts);
   r.inProgress = { kind: "revert", other: null, message, label: short(sha) };
   if (conflicts.length) return { repo: r, kind: "conflict", conflicts, from: head, to: sha };
   return { repo: commit(r, message), kind: "merge-commit", conflicts: [], from: head, to: sha };
@@ -757,10 +752,8 @@ export function cherryPick(repo: Repo, ref: string): MergeResult {
   const head = headSha(repo)!;
   const r = clone(repo);
   const { tree, conflicts } = applyCommitOnto(r, c, r.commits[head].tree);
-  r.workdir = { ...tree };
-  r.index = { ...tree };
-  for (const p of conflicts) delete r.index[p];
-  r.conflicts = conflicts;
+  assertNoUntrackedCollision(r, tree, "cherry-pick");
+  replaceTracked(r, tree, conflicts);
   r.inProgress = { kind: "cherry-pick", other: null, message: c.message, label: short(sha) };
   if (conflicts.length) return { repo: r, kind: "conflict", conflicts, from: head, to: sha };
   return { repo: commit(r, c.message), kind: "merge-commit", conflicts: [], from: head, to: sha };

@@ -773,3 +773,213 @@ describe("arquivo não rastreado no rebase", () => {
     expect(G.isCleanRepo(r)).toBe(true);
   });
 });
+
+describe("arquivo não rastreado em reset, revert e cherry-pick", () => {
+  // dois commits: a.txt e x.txt no primeiro, b.txt no segundo
+  const dois = () => run(G.createRepo({ user: "voce" }), "git init", "echo a > a.txt", "echo x > x.txt", "git add .", 'git commit -m "um"', "echo 2 > b.txt", "git add .", 'git commit -m "dois"').repo;
+  // f e main mudam x.txt, e f também cria c.txt: o cherry-pick de f para em conflito
+  const divergente = () =>
+    run(dois(), "git switch -c f", "echo F > x.txt", "echo c > c.txt", "git add .", 'git commit -m "F"', "git switch main", "echo M > x.txt", "git add .", 'git commit -m "M"').repo;
+  // o revert do commit "F" para em conflito em x.txt e apaga c.txt
+  const paraReverter = () => run(dois(), "echo F > x.txt", "echo c > c.txt", "git add .", 'git commit -m "F"', "echo G > x.txt", "git add .", 'git commit -m "G"').repo;
+  const arquivos = (r: Repo) => Object.keys(r.workdir).sort();
+
+  describe("git reset --hard", () => {
+    it("mantém o não rastreado", () => {
+      const r = run(dois(), "echo meu > u.txt", "git reset --hard HEAD~1").repo;
+      expect(r.workdir["u.txt"]).toBe("meu\n");
+      expect(r.workdir).not.toHaveProperty("b.txt");
+      expect(G.status(r).untracked).toEqual(["u.txt"]);
+    });
+    it("sobrescreve o não rastreado que colide", () => {
+      const r = run(dois(), "git reset --hard HEAD~1", "echo meu > b.txt", `git reset --hard ${G.headSha(dois())}`).repo;
+      expect(r.workdir["b.txt"]).toBe("2\n");
+      expect(G.status(r).untracked).toEqual([]);
+    });
+    it("apaga o arquivo novo em staging, mesmo alterado depois do add", () => {
+      expect(run(dois(), "echo n > n.txt", "git add n.txt", "git reset --hard HEAD").repo.workdir).not.toHaveProperty("n.txt");
+      expect(run(dois(), "echo n > n.txt", "git add n.txt", "echo n2 > n.txt", "git reset --hard HEAD").repo.workdir).not.toHaveProperty("n.txt");
+    });
+    it("mantém o arquivo que saiu da staging com git rm --cached", () => {
+      const r = run(dois(), "git rm --cached b.txt", "git reset --hard HEAD~1").repo;
+      expect(r.workdir["b.txt"]).toBe("2\n");
+      expect(G.status(r).untracked).toEqual(["b.txt"]);
+    });
+    it("limpa conflito de merge, mantém o não rastreado e apaga o arquivo em conflito que some no alvo", () => {
+      const conflito = run(
+        dois(),
+        "git switch -c f",
+        "echo F > x.txt",
+        "echo F > novo.txt",
+        "git add .",
+        'git commit -m "F"',
+        "git switch main",
+        "echo M > x.txt",
+        "echo M > novo.txt",
+        "git add .",
+        'git commit -m "M"',
+        "echo meu > u.txt",
+        "git merge f",
+      ).repo;
+      expect(conflito.conflicts).toEqual(["novo.txt", "x.txt"]);
+      const noHead = run(conflito, "git reset --hard HEAD").repo;
+      expect(noHead.inProgress).toBeNull();
+      expect(noHead.conflicts).toEqual([]);
+      expect(noHead.workdir["novo.txt"]).toBe("M\n");
+      expect(noHead.workdir["u.txt"]).toBe("meu\n");
+      const antes = run(conflito, "git reset --hard HEAD~1").repo;
+      expect(arquivos(antes)).toEqual(["a.txt", "b.txt", "u.txt", "x.txt"]);
+    });
+    it("limpa cherry-pick parado e mantém o não rastreado", () => {
+      const r = run(divergente(), "echo meu > u.txt", "git cherry-pick f", "git reset --hard HEAD").repo;
+      expect(r.inProgress).toBeNull();
+      expect(r.workdir["u.txt"]).toBe("meu\n");
+      expect(G.isCleanRepo(r)).toBe(true);
+    });
+    it("durante um rebase parado, mantém o não rastreado e o rebase segue", () => {
+      const parado = run(
+        dois(),
+        "git switch -c f",
+        "echo F > x.txt",
+        "git add .",
+        'git commit -m "F"',
+        "echo p > p.txt",
+        "git add .",
+        'git commit -m "P"',
+        "git switch main",
+        "echo M > x.txt",
+        "git add .",
+        'git commit -m "M"',
+        "git switch f",
+        "echo meu > u.txt",
+        "git rebase main",
+        "git reset --hard HEAD",
+      ).repo;
+      expect(parado.rebase).not.toBeNull();
+      expect(parado.workdir["u.txt"]).toBe("meu\n");
+      const r = run(parado, "git rebase --continue").repo;
+      expect(r.rebase).toBeNull();
+      expect(G.log(r).map((e) => e.commit.message).slice(0, 2)).toEqual(["P", "M"]);
+      expect(r.workdir["u.txt"]).toBe("meu\n");
+    });
+  });
+
+  describe("git revert", () => {
+    it("mantém o não rastreado", () => {
+      const r = run(dois(), "echo meu > u.txt", "git revert HEAD").repo;
+      expect(r.workdir["u.txt"]).toBe("meu\n");
+      expect(r.workdir).not.toHaveProperty("b.txt");
+    });
+    it("recusa quando recriaria um arquivo que colide, sem mudar nada", () => {
+      const antes = run(dois(), "git rm b.txt", 'git commit -m "tira"', "echo meu > b.txt").repo;
+      const res = run(antes, "git revert HEAD");
+      expect(res.ok).toBe(false);
+      expect(res.lines.join("\n")).toContain("b.txt");
+      expect(res.repo).toEqual(antes);
+    });
+    it("recusa mesmo com conteúdo idêntico", () => {
+      const res = run(dois(), "git rm b.txt", 'git commit -m "tira"', "echo 2 > b.txt", "git revert HEAD");
+      expect(res.ok).toBe(false);
+      expect(res.repo.inProgress).toBeNull();
+    });
+    it("colisão vem antes do conflito: não para em revert", () => {
+      const antes = run(dois(), "git rm b.txt", "echo X > x.txt", "git add .", 'git commit -m "tira"', "echo X2 > x.txt", "git add .", 'git commit -m "muda"', "echo meu > b.txt").repo;
+      const res = run(antes, "git revert HEAD~1");
+      expect(res.ok).toBe(false);
+      expect(res.repo).toEqual(antes);
+    });
+    it("recusa conflito modificado/apagado em arquivo que colide", () => {
+      const antes = run(dois(), "echo 3 > b.txt", "git add .", 'git commit -m "muda b"', "git rm b.txt", 'git commit -m "tira b"', "echo meu > b.txt").repo;
+      const res = run(antes, "git revert HEAD~1");
+      expect(res.ok).toBe(false);
+      expect(res.repo).toEqual(antes);
+    });
+    it("mantém o não rastreado ao parar em conflito e no --abort", () => {
+      const parado = run(paraReverter(), "echo meu > u.txt", "git revert HEAD~1").repo;
+      expect(parado.conflicts).toEqual(["x.txt"]);
+      expect(parado.workdir["u.txt"]).toBe("meu\n");
+      expect(G.status(parado).untracked).toEqual(["u.txt"]);
+      const r = run(parado, "git revert --abort").repo;
+      expect(r.inProgress).toBeNull();
+      expect(r.workdir["u.txt"]).toBe("meu\n");
+      expect(r.workdir["c.txt"]).toBe("c\n");
+      expect(r.workdir["x.txt"]).toBe("G\n");
+    });
+    it("--abort mantém a edição feita em outro arquivo durante a parada", () => {
+      const r = run(paraReverter(), "git revert HEAD~1", "echo sujo >> a.txt", "git revert --abort").repo;
+      expect(r.workdir["a.txt"]).toBe("a\nsujo\n");
+      expect(G.status(r).unstaged.map((f) => f.path)).toEqual(["a.txt"]);
+    });
+    it("--abort recusa se um não rastreado colide com o HEAD", () => {
+      const parado = run(paraReverter(), "git revert HEAD~1", "echo meu > c.txt").repo;
+      const res = run(parado, "git revert --abort");
+      expect(res.ok).toBe(false);
+      expect(res.repo).toEqual(parado);
+    });
+  });
+
+  describe("git cherry-pick", () => {
+    it("mantém o não rastreado", () => {
+      const r = run(dois(), "git switch -c f", "echo f > f.txt", "git add .", 'git commit -m "f"', "git switch main", "echo meu > u.txt", "git cherry-pick f").repo;
+      expect(r.workdir["u.txt"]).toBe("meu\n");
+      expect(r.workdir["f.txt"]).toBe("f\n");
+    });
+    it("recusa quando criaria um arquivo que colide, sem mudar nada", () => {
+      const antes = run(dois(), "git switch -c f", "echo f > f.txt", "git add .", 'git commit -m "f"', "git switch main", "echo meu > f.txt").repo;
+      const res = run(antes, "git cherry-pick f");
+      expect(res.ok).toBe(false);
+      expect(res.lines.join("\n")).toContain("f.txt");
+      expect(res.repo).toEqual(antes);
+    });
+    it("recusa mesmo com conteúdo idêntico", () => {
+      const res = run(dois(), "git switch -c f", "echo f > f.txt", "git add .", 'git commit -m "f"', "git switch main", "echo f > f.txt", "git cherry-pick f");
+      expect(res.ok).toBe(false);
+      expect(res.repo.inProgress).toBeNull();
+    });
+    it("colisão vem antes do conflito: não para em cherry-pick", () => {
+      const antes = run(divergente(), "echo meu > c.txt").repo;
+      const res = run(antes, "git cherry-pick f");
+      expect(res.ok).toBe(false);
+      expect(res.repo).toEqual(antes);
+    });
+    it("mantém o não rastreado ao parar em conflito e no --abort, que apaga o que o pick trouxe", () => {
+      const parado = run(divergente(), "echo meu > u.txt", "git cherry-pick f").repo;
+      expect(parado.workdir["u.txt"]).toBe("meu\n");
+      expect(parado.workdir["c.txt"]).toBe("c\n");
+      const r = run(parado, "git cherry-pick --abort").repo;
+      expect(r.inProgress).toBeNull();
+      expect(r.workdir["u.txt"]).toBe("meu\n");
+      expect(r.workdir).not.toHaveProperty("c.txt");
+      expect(r.workdir["x.txt"]).toBe("M\n");
+    });
+    it("--abort mantém a edição feita em outro arquivo durante a parada", () => {
+      const r = run(divergente(), "git cherry-pick f", "echo sujo >> a.txt", "git cherry-pick --abort").repo;
+      expect(r.workdir["a.txt"]).toBe("a\nsujo\n");
+    });
+    it("--abort apaga o arquivo novo posto em staging durante a parada", () => {
+      const r = run(divergente(), "git cherry-pick f", "echo n > n.txt", "git add n.txt", "git cherry-pick --abort").repo;
+      expect(r.workdir).not.toHaveProperty("n.txt");
+    });
+    it("--abort recusa se um não rastreado colide com o HEAD", () => {
+      const parado = run(dois(), "echo t > t.txt", "git add .", 'git commit -m "t"', "git switch -c f", "git rm t.txt", "echo F > x.txt", "git add .", 'git commit -m "F"', "git switch main", "echo M > x.txt", "git add .", 'git commit -m "M"', "git cherry-pick f", "echo meu > t.txt").repo;
+      const res = run(parado, "git cherry-pick --abort");
+      expect(res.ok).toBe(false);
+      expect(res.lines.join("\n")).toContain("t.txt");
+      expect(res.repo).toEqual(parado);
+    });
+  });
+
+  describe("git merge --abort, que usa o mesmo caminho", () => {
+    const parado = () => run(dois(), "echo t > t.txt", "git add .", 'git commit -m "t"', "git switch -c f", "git rm t.txt", "echo F > x.txt", "git add .", 'git commit -m "F"', "git switch main", "echo M > x.txt", "git add .", 'git commit -m "M"', "git merge f").repo;
+    it("apaga o arquivo novo posto em staging durante a parada", () => {
+      const r = run(parado(), "echo n > n.txt", "git add n.txt", "git merge --abort").repo;
+      expect(r.workdir).not.toHaveProperty("n.txt");
+    });
+    it("recusa se um não rastreado colide com o HEAD", () => {
+      const antes = run(parado(), "echo meu > t.txt").repo;
+      const res = run(antes, "git merge --abort");
+      expect(res.ok).toBe(false);
+      expect(res.repo).toEqual(antes);
+    });
+  });
+});

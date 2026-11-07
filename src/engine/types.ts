@@ -22,8 +22,6 @@ export interface InProgress {
   other: Sha | null;
   message: string;
   label: string;
-  /** arquivos alterados pelo merge: o --abort restaura só estes e preserva o resto do trabalho local */
-  touched?: string[];
 }
 
 export interface RebaseState {
