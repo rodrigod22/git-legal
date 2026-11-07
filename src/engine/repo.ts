@@ -478,10 +478,25 @@ function mergeTrees(base: Tree, ours: Tree, theirs: Tree, labels: { ours: string
   return { tree, conflicts };
 }
 
+/** Como no Git real, o merge só recusa trabalho local que ele sobrescreveria. */
+function assertMergeKeepsLocalWork(repo: Repo, merged: Tree, conflicts: string[] = []) {
+  const s = status(repo);
+  const head = headTree(repo);
+  const touched = (p: string) => conflicts.includes(p) || head[p] !== merged[p];
+  const dirty = [...new Set([...s.staged, ...s.unstaged].map((f) => f.path))].filter(touched);
+  if (dirty.length) {
+    throw new GitError(`erro: suas alterações locais seriam sobrescritas por merge:\n${dirty.map((p) => `\t${p}`).join("\n")}\ndica: faça commit ou 'git stash' antes do merge.`);
+  }
+  const untracked = s.untracked.filter((p) => p in merged);
+  if (untracked.length) {
+    throw new GitError(`erro: estes arquivos não rastreados seriam sobrescritos por merge:\n${untracked.map((p) => `\t${p}`).join("\n")}\ndica: mova ou apague esses arquivos antes do merge.`);
+  }
+}
+
 export function merge(repo: Repo, ref: string, opts: { noFf?: boolean; message?: string } = {}): MergeResult {
   assertInit(repo);
   assertNoInProgress(repo, "merge");
-  assertClean(repo, "merge");
+  if (repo.conflicts.length) throw new GitError("erro: merge não é possível com conflitos não resolvidos.");
   const head = headSha(repo);
   if (!head) throw new GitError("fatal: faça o primeiro commit antes de um merge");
   const target = resolve(repo, ref);
@@ -490,6 +505,7 @@ export function merge(repo: Repo, ref: string, opts: { noFf?: boolean; message?:
   }
   const r = clone(repo);
   if (isAncestor(r, head, target) && !opts.noFf) {
+    assertMergeKeepsLocalWork(r, r.commits[target].tree);
     switchTree(r, target, "merge");
     if (r.head.type === "branch") r.branches[r.head.name] = target;
     else r.head = { type: "detached", sha: target };
@@ -499,18 +515,25 @@ export function merge(repo: Repo, ref: string, opts: { noFf?: boolean; message?:
   const baseSha = mergeBase(r, head, target);
   const base = baseSha ? r.commits[baseSha].tree : {};
   const label = currentBranch(r) ?? short(head);
-  const { tree, conflicts } = mergeTrees(base, r.commits[head].tree, r.commits[target].tree, { ours: label, theirs: ref });
+  const ours = r.commits[head].tree;
+  const { tree, conflicts } = mergeTrees(base, ours, r.commits[target].tree, { ours: label, theirs: ref });
+  const staged = status(r).staged;
+  if (staged.length) {
+    // só o merge de três vias exige a staging limpa: o commit de merge não pode levar outra coisa junto
+    throw new GitError(`erro: suas alterações locais seriam sobrescritas por merge:\n${staged.map((f) => `\t${f.path}`).join("\n")}\ndica: este merge cria um commit, então a staging precisa estar limpa. Faça commit ou 'git stash' antes.`);
+  }
+  assertMergeKeepsLocalWork(r, tree, conflicts);
   const message = opts.message ?? `Merge branch '${ref}'${currentBranch(r) && currentBranch(r) !== "main" ? ` into ${currentBranch(r)}` : ""}`;
-  r.workdir = { ...r.workdir, ...tree };
-  for (const p of Object.keys(r.index)) if (!(p in tree)) delete r.workdir[p];
+  const touched = [...new Set([...Object.keys(ours), ...Object.keys(tree)])].filter((p) => ours[p] !== tree[p] || conflicts.includes(p));
+  for (const p of touched) {
+    if (p in tree) r.workdir[p] = tree[p];
+    else delete r.workdir[p];
+  }
   r.index = { ...tree };
   for (const c of conflicts) delete r.index[c];
   r.conflicts = conflicts;
-  if (conflicts.length) {
-    r.inProgress = { kind: "merge", other: target, message, label: ref };
-    return { repo: r, kind: "conflict", conflicts, from: head, to: target };
-  }
-  r.inProgress = { kind: "merge", other: target, message, label: ref };
+  r.inProgress = { kind: "merge", other: target, message, label: ref, touched };
+  if (conflicts.length) return { repo: r, kind: "conflict", conflicts, from: head, to: target };
   const done = commit(r, message);
   return { repo: done, kind: "merge-commit", conflicts: [], from: head, to: target };
 }
@@ -519,7 +542,15 @@ export function abortInProgress(repo: Repo, kind: InProgress["kind"]): Repo {
   if (!repo.inProgress || repo.inProgress.kind !== kind) throw new GitError(`fatal: não há ${kind} em andamento`);
   const r = clone(repo);
   const head = headTree(r);
-  r.workdir = { ...head };
+  const touched = r.inProgress!.touched;
+  if (touched) {
+    for (const p of touched) {
+      if (p in head) r.workdir[p] = head[p];
+      else delete r.workdir[p];
+    }
+  } else {
+    r.workdir = { ...head };
+  }
   r.index = { ...head };
   r.conflicts = [];
   r.inProgress = null;

@@ -194,6 +194,99 @@ describe("branches e merge", () => {
   });
 });
 
+// Cada caso reproduz o resultado medido no Git 2.52.
+describe("merge com trabalho local", () => {
+  const avancoSimples = () => run(base(), "git switch -c feature", 'echo "f" > f.txt', "git add .", 'git commit -m "feat"', "git switch main").repo;
+  const divergiu = () => run(avancoSimples(), 'echo "m" > m.txt', "git add .", 'git commit -m "main"').repo;
+  const emConflito = () =>
+    run(base(), 'echo "c" > c.txt', "git add .", 'git commit -m "c"', "git switch -c feature", 'echo "F" > c.txt', "git add .", 'git commit -m "F"', "git switch main", 'echo "M" > c.txt', "git add .", 'git commit -m "M"').repo;
+
+  it("fast-forward preserva alteração não staged em arquivo não relacionado", () => {
+    const res = run(avancoSimples(), 'echo "local" >> README.md', "git merge feature");
+    expect(res.event).toBe("fast-forward");
+    expect(res.repo.workdir["README.md"]).toContain("local");
+    expect(res.repo.workdir["f.txt"]).toBe("f\n");
+    expect(G.status(res.repo).unstaged.map((f) => f.path)).toEqual(["README.md"]);
+  });
+  it("fast-forward preserva alteração staged em arquivo não relacionado", () => {
+    const res = run(avancoSimples(), 'echo "local" >> README.md', "git add README.md", "git merge feature");
+    expect(res.event).toBe("fast-forward");
+    expect(G.status(res.repo).staged.map((f) => f.path)).toEqual(["README.md"]);
+  });
+  it("merge de três vias preserva alteração não staged e não a inclui no commit", () => {
+    const res = run(divergiu(), 'echo "local" >> README.md', "git merge feature");
+    expect(res.event).toBe("merge");
+    expect(res.repo.workdir["README.md"]).toContain("local");
+    expect(res.repo.commits[G.headSha(res.repo)!].tree["README.md"]).toBe("# Projeto RPA\n");
+    expect(G.status(res.repo).unstaged.map((f) => f.path)).toEqual(["README.md"]);
+  });
+  it("preserva arquivo apagado localmente que o merge não toca", () => {
+    const res = run(divergiu(), "rm README.md", "git merge feature");
+    expect(res.event).toBe("merge");
+    expect(res.repo.workdir["README.md"]).toBeUndefined();
+  });
+  it("preserva arquivo não rastreado não relacionado", () => {
+    const res = run(divergiu(), 'echo "u" > u.txt', "git merge feature");
+    expect(res.event).toBe("merge");
+    expect(res.repo.workdir["u.txt"]).toBe("u\n");
+    expect(G.status(res.repo).untracked).toEqual(["u.txt"]);
+  });
+  it("merge de três vias recusa alteração staged, mesmo em arquivo não relacionado", () => {
+    const r = run(divergiu(), 'echo "local" >> README.md', "git add README.md").repo;
+    const res = run(r, "git merge feature");
+    expect(res.ok).toBe(false);
+    expect(res.lines.join("\n")).toContain("README.md");
+    expect(res.repo).toBe(r);
+  });
+  it("recusa alteração local em arquivo que o merge toca", () => {
+    const r = run(base(), "git switch -c feature", 'echo "z" >> README.md', "git add .", 'git commit -m "z"', "git switch main", 'echo "m" > m.txt', "git add .", 'git commit -m "m"', 'echo "local" >> README.md').repo;
+    const res = run(r, "git merge feature");
+    expect(res.ok).toBe(false);
+    expect(res.lines.join("\n")).toContain("stash");
+    expect(res.repo).toBe(r);
+  });
+  it.each([
+    ["fast-forward, conteúdo diferente", "avanco", "outro"],
+    ["fast-forward, mesmo conteúdo", "avanco", "f"],
+    ["três vias, mesmo conteúdo", "divergiu", "f"],
+  ])("recusa arquivo não rastreado que colidiria: %s", (_nome, cenario, conteudo) => {
+    const r = run(cenario === "avanco" ? avancoSimples() : divergiu(), `echo "${conteudo}" > f.txt`).repo;
+    const res = run(r, "git merge feature");
+    expect(res.ok).toBe(false);
+    expect(res.lines.join("\n")).toContain("não rastreados");
+    expect(res.repo.workdir["f.txt"]).toBe(`${conteudo}\n`);
+  });
+  it("já atualizado responde normalmente com alteração local", () => {
+    const res = run(base(), "git branch outra", 'echo "local" >> README.md', "git merge outra");
+    expect(res.ok).toBe(true);
+    expect(res.lines.join("\n")).toContain("Already up to date");
+  });
+  it("conflito preserva o trabalho local não relacionado, e --abort também", () => {
+    const res = run(emConflito(), 'echo "local" >> README.md', 'echo "u" > u.txt', "git merge feature");
+    expect(res.event).toBe("conflict");
+    expect(res.repo.workdir["README.md"]).toContain("local");
+    const aborted = run(res.repo, "git merge --abort");
+    expect(aborted.repo.workdir["c.txt"]).toBe("M\n");
+    expect(aborted.repo.workdir["README.md"]).toContain("local");
+    expect(aborted.repo.workdir["u.txt"]).toBe("u\n");
+    expect(G.status(aborted.repo).unstaged.map((f) => f.path)).toEqual(["README.md"]);
+    expect(aborted.repo.conflicts).toEqual([]);
+  });
+  it("--abort apaga o arquivo trazido pelo merge", () => {
+    const r = run(emConflito(), "git switch feature", 'echo "n" > novo.txt', "git add .", 'git commit -m "novo"', "git switch main").repo;
+    const res = run(r, "git merge feature", "git merge --abort");
+    expect(res.repo.workdir["novo.txt"]).toBeUndefined();
+  });
+  it("git pull sem rebase também aceita alteração local não relacionada", () => {
+    let r = G.push(G.addRemote(base())).repo;
+    r = G.remoteCommit(r, "main", "ana", "colega", (t) => ({ ...t, "ana.txt": "oi\n" }));
+    const res = run(r, 'echo "local" >> README.md', "git pull");
+    expect(res.ok).toBe(true);
+    expect(res.repo.workdir["ana.txt"]).toBe("oi\n");
+    expect(res.repo.workdir["README.md"]).toContain("local");
+  });
+});
+
 describe("rebase", () => {
   it("reaplica commits em cima da base", () => {
     const res = run(
