@@ -107,6 +107,31 @@ function play(id: string, steps: Step[]): Session {
 
 const hashOf = (s: Session, message: string) => Object.values(s.repo.commits).find((c) => c.message === message)!.sha.slice(0, 7);
 
+describe("investigação: o objetivo olha o commit mostrado, não o texto digitado", () => {
+  const corrige = ['echo "$db_port = 3306;" > config.php', "git add config.php", 'git commit -m "fix: porta do banco"'];
+  const mostrouCulpado = (s: Session) => evaluate(findMission("investigacao")!.mission, s)[1];
+
+  it.each(["git show HEAD~1", "git show HEAD^", "git show main~1"])("aceita %s e continua valendo depois do commit de correção", (cmd) => {
+    const s = play("investigacao", ["git log --oneline", cmd, ...corrige]);
+    expect(mostrouCulpado(s)).toBe(true);
+    expect(s.completed).toBe(true);
+  });
+  it("aceita o hash completo", () => {
+    const s = play("investigacao", [(x) => `git show ${Object.values(x.repo.commits).find((c) => c.message === "ajusta configuração")!.sha}`]);
+    expect(mostrouCulpado(s)).toBe(true);
+  });
+  it("depois da correção, HEAD~1 é outro commit e não conta, mas HEAD~2 conta", () => {
+    const antes = play("investigacao", [...corrige, "git show HEAD~1"]);
+    expect(mostrouCulpado(antes)).toBe(false);
+    const depois = play("investigacao", [...corrige, "git show HEAD~2"]);
+    expect(mostrouCulpado(depois)).toBe(true);
+  });
+  it("outro commit ou referência inválida não contam", () => {
+    expect(mostrouCulpado(play("investigacao", ["git show HEAD"]))).toBe(false);
+    expect(mostrouCulpado(play("investigacao", ["git show HEAD~9"]))).toBe(false);
+  });
+});
+
 describe("caminhos alternativos ensinados nas dicas", () => {
   it("resgate: a dica `git switch -c feature/importacao <hash>` conclui a missão", () => {
     const s = play("resgate", ["git reflog", (x) => `git switch -c feature/importacao ${hashOf(x, "importa planilha")}`]);

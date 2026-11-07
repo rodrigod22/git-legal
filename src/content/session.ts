@@ -27,6 +27,7 @@ export interface Session {
   repo: Repo;
   commands: string[];
   events: TerminalEvent[];
+  shown: string[];
   firedTriggers: string[];
   lines: TerminalLine[];
   errors: number;
@@ -51,6 +52,7 @@ export function startSession(mission: Mission): Session {
     repo,
     commands: [],
     events: [],
+    shown: [],
     firedTriggers: [],
     lines: [{ id: 1, kind: "system", text: `Missão: ${mission.title}. Digite <c>help</c> para ver os comandos.` }],
     errors: 0,
@@ -62,7 +64,7 @@ export function startSession(mission: Mission): Session {
 }
 
 export function ctxOf(s: Session): CheckCtx {
-  return { repo: s.repo, commands: s.commands, events: s.events };
+  return { repo: s.repo, commands: s.commands, events: s.events, shown: s.shown };
 }
 
 export function evaluate(mission: Mission, s: Session): boolean[] {
@@ -107,6 +109,7 @@ export function runCommand(mission: Mission, session: Session, input: string): S
   s.repo = result.repo;
   s.commands.push(input.trim());
   s.events.push(result.event ?? (result.ok ? ("ok" as TerminalEvent) : "error"));
+  if (result.shown) s.shown = [...s.shown, result.shown];
   if (!result.ok) s.errors++;
   if (result.action?.type === "clear") s.lines = [];
   else for (const l of result.lines) s.lines.push({ id: s.seq++, kind: "output", text: l, ok: result.ok });

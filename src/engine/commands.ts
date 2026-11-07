@@ -31,6 +31,8 @@ export interface CommandResult {
   ok: boolean;
   event?: TerminalEvent;
   action?: { type: "edit"; path: string } | { type: "clear" } | { type: "help" };
+  /** commit exibido por git show, já resolvido: HEAD~1 muda de sentido depois de um novo commit */
+  shown?: string;
 }
 
 export function esc(s: string): string {
@@ -482,7 +484,7 @@ function runGit(repo: Repo, args: string[]): CommandResult {
       const c = repo.commits[sha];
       const lines = [`<y>commit ${c.sha}</y>${decor(G.refsAt(repo, sha))}`, `Author: ${esc(c.author)}`, `Date:   ${fmtDate(c.timestamp)}`, "", `    ${esc(c.message)}`, ""];
       lines.push(...G.commitDiff(repo, sha).map((l) => (l.startsWith("+") ? `<g>${esc(l)}</g>` : l.startsWith("-") ? `<r>${esc(l)}</r>` : esc(l))));
-      return { repo, lines, ok: true };
+      return { repo, lines, ok: true, shown: sha };
     }
     case "reflog":
       return { repo, lines: repo.reflog.length ? repo.reflog.map((e, i) => `<y>${G.short(e.sha)}</y> HEAD@{${i}}: ${esc(e.action)}`) : ["<d>(reflog vazio)</d>"], ok: true };

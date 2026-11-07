@@ -6,6 +6,8 @@ export interface CheckCtx {
   /** comandos digitados nesta missão, na ordem */
   commands: string[];
   events: TerminalEvent[];
+  /** commits exibidos com git show, na ordem */
+  shown: string[];
 }
 
 export interface Objective {

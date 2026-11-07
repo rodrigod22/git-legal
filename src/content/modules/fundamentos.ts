@@ -111,7 +111,7 @@ export const fundamentos: Module = {
         title: "Lendo a história",
         points: [
           "`git log --oneline` lista commits de forma compacta; `git log` mostra autor, data e mensagem.",
-          "`git show <sha>` exibe o que um commit mudou (o diff). Bastam os 7 primeiros caracteres do hash.",
+          "`git show <sha>` exibe o que um commit mudou (o diff). Bastam os 7 primeiros caracteres do hash, e também vale uma referência como `HEAD~1`, o commit anterior ao atual.",
           "`git diff` compara pasta de trabalho × staging; `git diff --staged` compara staging × último commit.",
         ],
       },
@@ -134,7 +134,7 @@ export const fundamentos: Module = {
           text: "Inspecionar o commit culpado com `git show`",
           check: (ctx) => {
             const culprit = commitsOn(ctx.repo, "HEAD").find((c) => c.message === "ajusta configuração");
-            return !!culprit && ctx.commands.some((c) => /^git show\s+(\S+)/.test(c) && culprit.sha.startsWith(c.replace(/^git show\s+/, "").trim().split(" ")[0]));
+            return !!culprit && ctx.shown.includes(culprit.sha);
           },
         },
         { id: "fix", text: "Commit começando com `fix:` que volta a porta para 3306", check: ({ repo }) => !!headCommit(repo) && /^fix:/i.test(headCommit(repo)!.message) && committedFile(repo, "config.php")?.includes("3306") === true },
@@ -142,7 +142,7 @@ export const fundamentos: Module = {
       ],
       hints: [
         "`git log --oneline` mostra 4 commits. O suspeito tem mensagem 'ajusta configuração'.",
-        "Copie os 7 caracteres do hash dele e rode `git show <hash>`; verá `-3306` e `+3307`.",
+        "Copie os 7 caracteres do hash dele e rode `git show <hash>` (ou `git show HEAD~1`, já que ele é o penúltimo); verá `-3306` e `+3307`.",
         "Para corrigir: `edit config.php` (ou `echo` com o conteúdo completo), depois `git add config.php` e `git commit -m \"fix: porta do banco\"`.",
       ],
       cheatsheet: ["git log --oneline", "git show <hash>", "edit config.php", "git add config.php", 'git commit -m "fix: porta do banco de volta para 3306"'],
