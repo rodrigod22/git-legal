@@ -17,7 +17,7 @@ Treinamento interativo e gamificado de Git para estagiários e devs: **branches,
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 43 testes: motor + solvabilidade de todas as missões
+npm test         # motor + solvabilidade de todas as missões
 npm run build    # gera dist/ (estático)
 ```
 
