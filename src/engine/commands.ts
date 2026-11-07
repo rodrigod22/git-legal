@@ -201,17 +201,92 @@ export function execute(repo: Repo, input: string): CommandResult {
   }
 }
 
-function flags(args: string[]) {
+/** Separa opções de posicionais. O argumento depois de uma opção de `values` é o valor dela, mesmo que comece com hífen. */
+function flags(args: string[], values: string[] = []) {
   const f = new Set<string>();
   const pos: string[] = [];
-  for (const a of args) {
-    if (a.startsWith("-") && a !== "-") f.add(a);
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (values.includes(a)) i++;
+    else if (a.startsWith("-") && a !== "-") f.add(a);
     else pos.push(a);
   }
   return { f, pos };
 }
 
+interface OptionSpec {
+  flags: string[];
+  /** opções seguidas de um valor */
+  values?: string[];
+  /** opções com o valor colado, como -5 ou -m"mensagem" */
+  pattern?: RegExp;
+  /** consulta: dá para ignorar a opção e mostrar a saída padrão */
+  readOnly?: boolean;
+}
+
+/** Opções que o Dojo realmente implementa. As demais geram aviso em vez de serem ignoradas. */
+const OPTIONS: Record<string, OptionSpec> = {
+  init: { flags: [] },
+  status: { flags: [], readOnly: true },
+  add: { flags: ["-A", "--all"] },
+  commit: { flags: ["-a"], values: ["-m", "-am"], pattern: /^-a?m./ },
+  log: { flags: ["--oneline", "--graph", "--all", "--decorate"], values: ["-n"], pattern: /^-n?\d+$/, readOnly: true },
+  branch: { flags: ["-a", "-r", "--list", "-d", "-D", "--delete", "-m", "-M", "--show-current"] },
+  checkout: { flags: ["-b", "-f", "--force", "--"] },
+  switch: { flags: ["-c", "--create", "-f", "--force", "--detach"] },
+  merge: { flags: ["--abort", "--continue", "--no-ff", "--no-edit"] },
+  rebase: { flags: ["--abort", "--continue"] },
+  reset: { flags: ["--soft", "--mixed", "--hard"] },
+  revert: { flags: ["--abort", "--no-edit"] },
+  "cherry-pick": { flags: ["--abort"] },
+  stash: { flags: [], values: ["-m"] },
+  diff: { flags: ["--staged", "--cached"], readOnly: true },
+  show: { flags: [], readOnly: true },
+  reflog: { flags: [], readOnly: true },
+  restore: { flags: ["--staged", "--"] },
+  rm: { flags: ["--cached", "-f", "--force", "-r"] },
+  remote: { flags: ["-v", "--verbose"] },
+  fetch: { flags: ["--all"] },
+  pull: { flags: ["--rebase", "-r"] },
+  push: { flags: ["-u", "--set-upstream", "-f", "--force"] },
+};
+
+function unsupportedOptions(args: string[], spec: OptionSpec): string[] {
+  const bad: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (spec.values?.includes(a)) i++;
+    else if (a.startsWith("-") && a !== "-" && !spec.flags.includes(a) && !spec.pattern?.test(a)) bad.push(a);
+  }
+  return bad;
+}
+
+/** Recusa algo que existe no Git real, mas não no Dojo: nada muda e não conta como erro do aluno. */
+function refuse(repo: Repo, what: string): CommandResult {
+  return {
+    repo,
+    lines: [`<y>aviso: o Dojo não suporta ${esc(what)}. Nada foi alterado.</y>`, "<d>dica: isso existe no Git real, mas não neste simulador. Digite 'git help' para ver o que funciona aqui.</d>"],
+    ok: true,
+    event: "unsupported",
+  };
+}
+
 function git(repo: Repo, args: string[]): CommandResult {
+  const [sub, ...rest] = args;
+  const spec = sub ? OPTIONS[sub] : undefined;
+  const bad = spec ? unsupportedOptions(rest, spec) : [];
+  if (!spec || !bad.length) return runGit(repo, args);
+  const names = bad.map((a) => `'${a.split("=")[0]}'`).join(", ");
+  const what = bad.length > 1 ? `as opções ${names}` : `a opção ${names}`;
+  if (!spec.readOnly) return refuse(repo, what);
+  const res = runGit(
+    repo,
+    args.filter((a) => !bad.includes(a)),
+  );
+  return { ...res, lines: [`<y>aviso: o Dojo não suporta ${esc(what)} e mostra a saída padrão.</y>`, ...res.lines] };
+}
+
+function runGit(repo: Repo, args: string[]): CommandResult {
   const sub = args[0];
   const rest = args.slice(1);
   if (!sub || sub === "help" || sub === "--help") return { repo, lines: HELP, ok: true, action: { type: "help" } };
@@ -231,12 +306,14 @@ function git(repo: Repo, args: string[]): CommandResult {
       return { repo: r, lines: resolved ? ["<g>Conflito marcado como resolvido. Agora finalize com 'git commit' (ou 'git rebase --continue').</g>"] : [], ok: true, event: resolved ? "resolved" : undefined };
     }
     case "commit": {
-      const { f, pos } = flags(rest);
-      let r = repo;
-      if (f.has("-am") || f.has("-a")) r = G.add(r, Object.keys(r.index).filter((p) => p in r.workdir));
-      let message = "";
+      const { f, pos } = flags(rest, ["-m", "-am"]);
       const mi = rest.findIndex((a) => a === "-m" || a === "-am");
+      const glued = mi === -1 ? rest.find((a) => /^-a?m./.test(a)) : undefined;
+      let r = repo;
+      if (f.has("-a") || rest[mi] === "-am" || glued?.startsWith("-am")) r = G.add(r, Object.keys(r.index).filter((p) => p in r.workdir));
+      let message = "";
       if (mi !== -1) message = rest[mi + 1] ?? "";
+      else if (glued) message = glued.replace(/^-a?m/, "");
       else if (pos.length) message = pos.join(" ");
       if (!message) throw new GitError("Abortando commit: mensagem vazia.\ndica: git commit -m \"descreva o que mudou\"");
       const wasMerge = r.inProgress;
@@ -280,15 +357,15 @@ function git(repo: Repo, args: string[]): CommandResult {
     case "checkout":
     case "switch": {
       const { f, pos } = flags(rest);
-      const create = f.has("-b") || f.has("-c") || f.has("-B");
-      if (sub === "checkout" && pos[0] === "--" || (sub === "checkout" && pos.length && !create && !(pos[0] in repo.branches) && pos[0] in repo.workdir)) {
+      const create = f.has("-b") || f.has("-c") || f.has("--create");
+      if (sub === "checkout" && pos.length && (f.has("--") || (!create && !(pos[0] in repo.branches) && pos[0] in repo.workdir))) {
         // git checkout -- arquivo  (restaura arquivo)
         const file = pos[pos.length - 1];
         return { repo: G.restoreFile(repo, file), lines: [`<d>Alterações em ${esc(file)} descartadas.</d>`], ok: true };
       }
       if (pos[0] === "-") throw new GitError("dica: 'git switch -' não é suportado no treinamento; informe o nome da branch.");
       if (!pos[0]) throw new GitError(`fatal: informe a branch. Ex.: git ${sub} ${create ? "-b " : ""}nome-da-branch`);
-      const r = G.checkout(repo, pos[0], { create, force: f.has("-f") || f.has("--force"), startPoint: create ? pos[1] : undefined });
+      const r = G.checkout(repo, pos[0], { create, force: f.has("-f") || f.has("--force"), startPoint: create ? pos[1] : undefined, detach: f.has("--detach") });
       const lines = create
         ? [`Trocado para a nova branch '<g>${esc(pos[0])}</g>'`]
         : r.head.type === "branch"
@@ -374,8 +451,10 @@ function git(repo: Repo, args: string[]): CommandResult {
       return { repo: res.repo, lines: [`[<g>${esc(G.currentBranch(res.repo) ?? "HEAD")}</g> <y>${G.short(G.headSha(res.repo)!)}</y>] ${esc(repo.commits[res.to].message)}`], ok: true, event: "commit" };
     }
     case "stash": {
-      const { f, pos } = flags(rest);
+      const { pos } = flags(rest, ["-m"]);
       const op = pos[0] ?? "push";
+      if (!["push", "list", "pop", "apply", "drop"].includes(op)) return refuse(repo, `'git stash ${op}'`);
+      if (pos[1] && pos[1] !== "stash@{0}") return refuse(repo, `'git stash ${op} ${pos[1]}': aqui só a entrada mais recente pode ser usada`);
       if (op === "list") return { repo, lines: repo.stash.length ? repo.stash.map((s, i) => `stash@{${i}}: ${esc(s.message)}`) : ["<d>(stash vazio)</d>"], ok: true };
       if (op === "pop" || op === "apply") {
         const r = G.stashPop(repo, op === "apply");
@@ -389,7 +468,6 @@ function git(repo: Repo, args: string[]): CommandResult {
       }
       const mi = rest.indexOf("-m");
       const r = G.stashPush(repo, mi !== -1 ? rest[mi + 1] : undefined);
-      void f;
       return { repo: r, lines: [`Saved working directory and index state ${esc(r.stash[0].message)}`], ok: true, event: "stash" };
     }
     case "diff": {
@@ -429,6 +507,8 @@ function git(repo: Repo, args: string[]): CommandResult {
       return { repo: r, lines: pos.map((p) => `rm '${esc(p)}'`), ok: true };
     }
     case "remote": {
+      const { pos } = flags(rest);
+      if (pos[0]) return refuse(repo, `'git remote ${pos[0]}': o remoto do treinamento é fixo`);
       if (!repo.remote) return { repo, lines: ["<d>(nenhum remoto configurado)</d>"], ok: true };
       return { repo, lines: [`origin\thttps://git.rpa.com.br/rpa/projeto-rpa.git (fetch)`, `origin\thttps://git.rpa.com.br/rpa/projeto-rpa.git (push)`], ok: true };
     }
@@ -459,7 +539,7 @@ function git(repo: Repo, args: string[]): CommandResult {
     case "push": {
       const { f, pos } = flags(rest);
       const branch = pos[1] ?? (pos[0] && pos[0] !== "origin" ? pos[0] : undefined);
-      const res = G.push(repo, { setUpstream: f.has("-u"), force: f.has("-f") || f.has("--force"), branch });
+      const res = G.push(repo, { setUpstream: f.has("-u") || f.has("--set-upstream"), force: f.has("-f") || f.has("--force"), branch });
       void f;
       const lines = [
         "To origin",
@@ -523,11 +603,11 @@ function label(kind: "new" | "modified" | "deleted"): string {
 }
 
 function logLines(repo: Repo, rest: string[]): string[] {
-  const { f, pos } = flags(rest);
+  const { f, pos } = flags(rest, ["-n"]);
   const oneline = f.has("--oneline");
   const graph = f.has("--graph");
   let limit: number | undefined;
-  for (const x of f) if (/^-\d+$/.test(x)) limit = parseInt(x.slice(1), 10);
+  for (const x of f) if (/^-n?\d+$/.test(x)) limit = parseInt(x.replace(/\D/g, ""), 10);
   const ni = rest.indexOf("-n");
   if (ni !== -1) limit = parseInt(rest[ni + 1], 10);
   const entries = G.log(repo, { all: f.has("--all"), from: pos[0], limit });

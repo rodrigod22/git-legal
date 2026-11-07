@@ -7,6 +7,7 @@ import { ALL_MISSIONS, findMission } from "./index";
 import { startSession, runCommand, editFile, evaluate } from "./session";
 import type { Session } from "./session";
 import * as G from "@/engine/repo";
+import { execute } from "@/engine/commands";
 
 type Step = string | ((s: Session) => string);
 
@@ -124,6 +125,23 @@ describe("cola de comandos", () => {
       for (const c of m.cheatsheet ?? []) {
         expect(c, m.id).not.toContain("&&");
         expect(c, m.id).not.toMatch(/\s\/\s/);
+      }
+    }
+  });
+});
+
+describe("comandos ensinados", () => {
+  const ensinados = (m: (typeof ALL_MISSIONS)[number]) => {
+    const inline = [...m.story, ...(m.concept?.points ?? []), ...m.hints].flatMap((t) => [...t.matchAll(/`(git [^`]+)`/g)].map((x) => x[1]));
+    const cola = (m.cheatsheet ?? []).map((c) => c.replace(/\s+\(.*\)$/, "")).filter((c) => c.startsWith("git "));
+    return [...inline, ...cola];
+  };
+  it("nenhum comando citado nas missões recebe o aviso de opção não suportada", () => {
+    for (const m of ALL_MISSIONS) {
+      for (const cmd of ensinados(m)) {
+        const res = execute(m.setup(), cmd);
+        expect(res.event, `${m.id}: ${cmd}`).not.toBe("unsupported");
+        expect(res.lines[0] ?? "", `${m.id}: ${cmd}`).not.toContain("o Dojo não suporta");
       }
     }
   });

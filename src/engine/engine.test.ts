@@ -270,6 +270,120 @@ describe("remoto simulado (trunk-based)", () => {
   });
 });
 
+describe("opções não suportadas", () => {
+  function comBranch() {
+    return run(base(), "git switch -c feature", 'echo "f" > f.txt', "git add .", 'git commit -m "feat"', "git switch main", 'echo "m" > m.txt', "git add .", 'git commit -m "main"').repo;
+  }
+  it("consulta: avisa, ignora a opção e mostra a saída padrão", () => {
+    const status = run(base(), "git status -s");
+    expect(status.ok).toBe(true);
+    expect(status.event).not.toBe("unsupported");
+    expect(status.lines[0]).toContain("'-s'");
+    expect(status.lines.join("\n")).toContain("On branch");
+
+    const log = run(base(), "git log --author=ana --oneline");
+    expect(log.lines[0]).toContain("'--author'");
+    expect(log.lines.join("\n")).toContain("primeiro commit");
+  });
+  it("lista todas as opções desconhecidas no aviso", () => {
+    const res = run(base(), "git diff --stat --name-only");
+    expect(res.lines[0]).toContain("'--stat'");
+    expect(res.lines[0]).toContain("'--name-only'");
+  });
+  it.each([
+    ['git commit --amend -m "outra"', "--amend"],
+    ["git merge --squash feature", "--squash"],
+    ["git rebase -i HEAD~1", "-i"],
+    ["git push --force-with-lease", "--force-with-lease"],
+    ["git add -p", "-p"],
+    ["git stash -u", "-u"],
+    ["git branch --merged", "--merged"],
+    ["git reset --keep HEAD~1", "--keep"],
+    ["git cherry-pick -x feature", "-x"],
+    ["git checkout -B outra", "-B"],
+  ])("altera o repositório: recusa sem mudar nada em %s", (cmd, opt) => {
+    const r = run(comBranch(), 'echo "w" >> README.md').repo;
+    const res = run(r, cmd);
+    expect(res.ok).toBe(true);
+    expect(res.event).toBe("unsupported");
+    expect(res.repo).toBe(r);
+    expect(res.lines[0]).toContain(`'${opt}'`);
+  });
+  it.each(["git stash clear", "git stash show", "git stash branch nova"])("subcomando desconhecido do stash não guarda nada: %s", (cmd) => {
+    const r = run(base(), 'echo "w" >> README.md').repo;
+    const res = run(r, cmd);
+    expect(res.event).toBe("unsupported");
+    expect(res.repo.stash).toEqual([]);
+    expect(res.repo.workdir["README.md"]).toContain("w");
+  });
+  it("git stash pop com índice avisa em vez de devolver outra entrada", () => {
+    const r = run(base(), 'echo "w" >> README.md', "git stash").repo;
+    const res = run(r, "git stash pop stash@{1}");
+    expect(res.event).toBe("unsupported");
+    expect(res.repo.stash).toHaveLength(1);
+  });
+  it("git remote add avisa que o remoto é fixo", () => {
+    const res = run(base(), "git remote add outro https://exemplo");
+    expect(res.event).toBe("unsupported");
+  });
+
+  describe("o que é suportado continua funcionando", () => {
+    it("mensagem de commit pode começar com hífen", () => {
+      const res = run(base(), 'echo "x" > a.txt', "git add .", 'git commit -m "-x marca o item"');
+      expect(res.event).toBe("commit");
+      expect(res.repo.commits[G.headSha(res.repo)!].message).toBe("-x marca o item");
+    });
+    it("mensagem que parece a opção -a não adiciona arquivos", () => {
+      const res = run(base(), 'echo "x" > a.txt', 'echo "y" >> README.md', "git add a.txt", 'git commit -m "-a"');
+      expect(res.event).toBe("commit");
+      expect(G.status(res.repo).unstaged.map((f) => f.path)).toEqual(["README.md"]);
+    });
+    it("aceita a mensagem colada na opção", () => {
+      const res = run(base(), 'echo "x" > a.txt', "git add .", 'git commit -m"colada"');
+      expect(res.repo.commits[G.headSha(res.repo)!].message).toBe("colada");
+    });
+    it("git commit -am adiciona os rastreados", () => {
+      const res = run(base(), 'echo "y" >> README.md', 'git commit -am "tudo"');
+      expect(res.event).toBe("commit");
+      expect(G.status(res.repo).unstaged).toEqual([]);
+    });
+    it.each(["git log -n 1 --oneline", "git log -1 --oneline", "git log -n1 --oneline"])("limita o log: %s", (cmd) => {
+      const r = run(base(), 'echo "2" > b.txt', "git add .", 'git commit -m "segundo"').repo;
+      const res = run(r, cmd);
+      expect(res.ok).toBe(true);
+      expect(res.lines).toHaveLength(1);
+    });
+    it.each(['git stash -m "minha gaveta"', 'git stash push -m "minha gaveta"'])("aceita mensagem no stash: %s", (cmd) => {
+      const res = run(base(), 'echo "y" >> README.md', cmd);
+      expect(res.repo.stash[0].message).toBe("minha gaveta");
+    });
+    it("git switch --create cria a branch", () => {
+      const res = run(base(), "git switch --create nova");
+      expect(G.currentBranch(res.repo)).toBe("nova");
+    });
+    it("git switch --detach desanexa mesmo apontando para uma branch", () => {
+      const res = run(base(), "git switch --detach main");
+      expect(res.repo.head.type).toBe("detached");
+    });
+    it("git checkout -- arquivo restaura arquivo apagado", () => {
+      const res = run(base(), "rm README.md", "git checkout -- README.md");
+      expect(res.ok).toBe(true);
+      expect(res.repo.workdir["README.md"]).toBe("# Projeto RPA\n");
+    });
+    it("git push --set-upstream funciona como -u", () => {
+      const r = G.addRemote(base());
+      const res = run(r, "git push --set-upstream origin main");
+      expect(res.event).toBe("push");
+    });
+    it("--no-edit é aceito, porque o Dojo nunca abre editor de mensagem", () => {
+      const merged = run(comBranch(), "git merge --no-edit feature");
+      expect(merged.event).toBe("merge");
+      const reverted = run(base(), 'echo "2" > b.txt', "git add .", 'git commit -m "segundo"', "git revert --no-edit HEAD");
+      expect(reverted.event).toBe("commit");
+    });
+  });
+});
+
 describe("um comando por vez", () => {
   it("avisa sobre && e não executa nada", () => {
     const r = run(base(), 'echo "x" > a.txt').repo;

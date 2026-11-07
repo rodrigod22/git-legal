@@ -405,18 +405,18 @@ function switchTree(r: Repo, targetSha: Sha | null, what: string) {
   r.index = newIndex;
 }
 
-export function checkout(repo: Repo, target: string, opts: { create?: boolean; force?: boolean; startPoint?: string } = {}): Repo {
+export function checkout(repo: Repo, target: string, opts: { create?: boolean; force?: boolean; startPoint?: string; detach?: boolean } = {}): Repo {
   assertInit(repo);
   assertNoInProgress(repo, "trocar de branch");
   let r = clone(repo);
   if (opts.create) {
     r = branchCreate(r, target, opts.startPoint);
   }
-  if (currentBranch(r) === target) {
+  if (!opts.detach && currentBranch(r) === target) {
     throw new GitError(`Você já está em '${target}'`);
   }
-  const isBranch = target in r.branches;
-  const sha = isBranch ? r.branches[target] : resolve(r, target);
+  const isBranch = !opts.detach && target in r.branches;
+  const sha = target in r.branches ? r.branches[target] : resolve(r, target);
   if (opts.force) {
     r.workdir = { ...r.commits[sha].tree };
     r.index = { ...r.commits[sha].tree };
