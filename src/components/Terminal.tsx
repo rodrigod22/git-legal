@@ -61,8 +61,9 @@ export function Terminal() {
     outRef.current?.scrollTo({ top: outRef.current.scrollHeight, behavior: "smooth" });
   }, [session?.lines.length]);
 
+  // no toque, o foco automático abriria o teclado e rolaria a página para longe do título da missão
   useEffect(() => {
-    inRef.current?.focus();
+    if (window.matchMedia("(hover: hover)").matches) inRef.current?.focus();
   }, [session?.missionId]);
 
   // hash clicado no grafo: entra na linha de comando (com linha vazia, sugere git show)
@@ -174,7 +175,7 @@ export function Terminal() {
       )}
       <div className="terminal-in">
         <Prompt text={prompt} />
-        <div style={{ position: "relative", flex: 1, display: "flex" }}>
+        <div style={{ position: "relative", flex: "1 1 140px", minWidth: 0, display: "flex" }}>
           <input
             ref={inRef}
             value={value}
