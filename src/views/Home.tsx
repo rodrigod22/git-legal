@@ -32,13 +32,13 @@ export function Home() {
     <div className="home">
       <motion.div className="hero" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <span className="pill" style={{ marginBottom: 16 }}>
-          🥋 Treinamento oficial de Git · RPA Tecnologia
+          🥋 Treinamento de Git · RPA Tecnologia
         </span>
         <h1>
           Aprenda Git <span className="grad">fazendo</span>, não lendo.
         </h1>
         <p className="lead">
-          Um terminal de verdade no navegador, um grafo que reage a cada comando e {ALL_MISSIONS.length} missões sobre o que importa no dia a dia: <b>branches, merges e conflitos</b> — no fluxo que a RPA usa.
+          Um terminal simulado no navegador, um grafo que reage a cada comando e {ALL_MISSIONS.length} missões sobre o que importa no dia a dia: <b>branches, merges e conflitos</b> — no fluxo que a RPA usa.
         </p>
         <div className="cta">
           <input
@@ -56,8 +56,8 @@ export function Home() {
         <div className="feature-grid">
           <div className="card feature">
             <TerminalIcon size={18} color="var(--cyan)" />
-            <b>Terminal real</b>
-            <span>Digite os comandos de verdade. Erros viram aprendizado, não estrago.</span>
+            <b>Terminal simulado</b>
+            <span>Digite os comandos do Git em um repositório de treino. Erros viram aprendizado, não estrago.</span>
           </div>
           <div className="card feature">
             <GitMerge size={18} color="var(--violet)" />
