@@ -153,6 +153,39 @@ describe("branches e merge", () => {
     expect(run(r, "git branch -d feature").ok).toBe(false);
     expect(run(r, "git branch -D feature").ok).toBe(true);
   });
+  describe("criar branch a partir de um ponto de partida", () => {
+    function doisCommits() {
+      const r = run(base(), 'echo "2" > b.txt', "git add .", 'git commit -m "segundo"').repo;
+      return { repo: r, primeiro: r.commits[G.headSha(r)!].parents[0] };
+    }
+    it("git switch -c nome <hash> nasce no commit informado, não no HEAD", () => {
+      const { repo, primeiro } = doisCommits();
+      const res = run(repo, `git switch -c resgate ${primeiro.slice(0, 7)}`);
+      expect(res.ok).toBe(true);
+      expect(res.repo.branches.resgate).toBe(primeiro);
+      expect(G.currentBranch(res.repo)).toBe("resgate");
+      expect(res.repo.workdir["b.txt"]).toBeUndefined();
+    });
+    it("git checkout -b nome <ref> aceita referências relativas", () => {
+      const { repo, primeiro } = doisCommits();
+      const res = run(repo, "git checkout -b resgate HEAD~1");
+      expect(res.repo.branches.resgate).toBe(primeiro);
+      expect(G.currentBranch(res.repo)).toBe("resgate");
+    });
+    it("ponto de partida inválido não cria a branch", () => {
+      const { repo } = doisCommits();
+      const res = run(repo, "git switch -c resgate abcd123");
+      expect(res.ok).toBe(false);
+      expect(res.repo.branches.resgate).toBeUndefined();
+      expect(G.currentBranch(res.repo)).toBe("main");
+    });
+    it("mantém alterações locais em arquivo não relacionado, como o Git real", () => {
+      const { repo, primeiro } = doisCommits();
+      const res = run(repo, 'echo "local" > README.md', `git switch -c resgate ${primeiro}`);
+      expect(res.ok).toBe(true);
+      expect(res.repo.workdir["README.md"]).toBe("local\n");
+    });
+  });
   it("bloqueia checkout que sobrescreveria alterações locais", () => {
     const r = run(base(), "git switch -c feature", 'echo "F" > README.md', "git add .", 'git commit -m "F"', "git switch main", 'echo "local" > README.md');
     const res = run(r.repo, "git switch feature");

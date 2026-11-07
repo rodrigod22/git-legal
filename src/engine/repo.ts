@@ -405,12 +405,12 @@ function switchTree(r: Repo, targetSha: Sha | null, what: string) {
   r.index = newIndex;
 }
 
-export function checkout(repo: Repo, target: string, opts: { create?: boolean; force?: boolean } = {}): Repo {
+export function checkout(repo: Repo, target: string, opts: { create?: boolean; force?: boolean; startPoint?: string } = {}): Repo {
   assertInit(repo);
   assertNoInProgress(repo, "trocar de branch");
   let r = clone(repo);
   if (opts.create) {
-    r = branchCreate(r, target);
+    r = branchCreate(r, target, opts.startPoint);
   }
   if (currentBranch(r) === target) {
     throw new GitError(`Você já está em '${target}'`);

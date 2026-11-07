@@ -257,7 +257,7 @@ function git(repo: Repo, args: string[]): CommandResult {
       }
       if (pos[0] === "-") throw new GitError("dica: 'git switch -' não é suportado no treinamento; informe o nome da branch.");
       if (!pos[0]) throw new GitError(`fatal: informe a branch. Ex.: git ${sub} ${create ? "-b " : ""}nome-da-branch`);
-      const r = G.checkout(repo, pos[0], { create, force: f.has("-f") || f.has("--force") });
+      const r = G.checkout(repo, pos[0], { create, force: f.has("-f") || f.has("--force"), startPoint: create ? pos[1] : undefined });
       const lines = create
         ? [`Trocado para a nova branch '<g>${esc(pos[0])}</g>'`]
         : r.head.type === "branch"

@@ -94,6 +94,25 @@ const solutions: Record<string, Step[]> = {
   resgate: ["git reflog", (s) => `git branch feature/importacao ${Object.values(s.repo.commits).find((c) => c.message === "importa planilha")!.sha.slice(0, 7)}`],
 };
 
+function play(id: string, steps: Step[]): Session {
+  const { mission } = findMission(id)!;
+  let session = startSession(mission);
+  for (const step of steps) {
+    const cmd = typeof step === "function" ? step(session) : step;
+    session = runCommand(mission, session, cmd).session;
+  }
+  return session;
+}
+
+const hashOf = (s: Session, message: string) => Object.values(s.repo.commits).find((c) => c.message === message)!.sha.slice(0, 7);
+
+describe("caminhos alternativos ensinados nas dicas", () => {
+  it("resgate: a dica `git switch -c feature/importacao <hash>` conclui a missão", () => {
+    const s = play("resgate", ["git reflog", (x) => `git switch -c feature/importacao ${hashOf(x, "importa planilha")}`]);
+    expect(s.completed).toBe(true);
+  });
+});
+
 describe("todas as missões são resolvíveis", () => {
   for (const mission of ALL_MISSIONS) {
     it(`${mission.id} — ${mission.title}`, () => {
