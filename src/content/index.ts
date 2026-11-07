@@ -6,6 +6,7 @@ import { conflitos } from "./modules/conflitos";
 import { trunk } from "./modules/trunk";
 import { perigo } from "./modules/perigo";
 import { sc } from "./helpers";
+import { xpFor } from "./gamification";
 
 export const MODULES: Module[] = [fundamentos, branches, merge, conflitos, trunk, perigo];
 
@@ -24,7 +25,8 @@ export function nextMission(id: string): Mission | null {
   return ALL_MISSIONS[i + 1] ?? null;
 }
 
-export const TOTAL_XP = ALL_MISSIONS.reduce((s, m) => s + m.xp, 0);
+/** XP de quem conclui todas as missões com 3 estrelas. */
+export const MAX_XP = ALL_MISSIONS.reduce((s, m) => s + xpFor(m.xp, 3), 0);
 
 /** Modo livre: repositório de brinquedo com remoto, sem objetivos. */
 export const PLAYGROUND: Mission = {

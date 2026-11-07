@@ -3,7 +3,8 @@
  * Cada solução é uma sequência de comandos; `edit:<arquivo>=<conteúdo>` simula o editor.
  */
 import { describe, it, expect } from "vitest";
-import { ALL_MISSIONS, findMission } from "./index";
+import { ALL_MISSIONS, MAX_XP, findMission } from "./index";
+import { starsFor, xpFor } from "./gamification";
 import { startSession, runCommand, editFile, evaluate } from "./session";
 import type { Session } from "./session";
 import * as G from "@/engine/repo";
@@ -143,6 +144,15 @@ const textoDe = (id: string) => {
   const { mission } = findMission(id)!;
   return [...mission.story, ...(mission.concept?.points ?? []), ...mission.hints].join("\n");
 };
+
+describe("XP", () => {
+  it("o máximo é a soma de todas as missões com 3 estrelas", () => {
+    const tresEstrelas = starsFor(0, 0);
+    expect(tresEstrelas).toBe(3);
+    expect(MAX_XP).toBe(ALL_MISSIONS.reduce((s, m) => s + xpFor(m.xp, tresEstrelas), 0));
+    expect(MAX_XP).toBe(2931);
+  });
+});
 
 describe("cola de comandos", () => {
   it("cada item copia um único comando que o terminal aceita", () => {

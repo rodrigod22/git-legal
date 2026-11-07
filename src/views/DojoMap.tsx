@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Sprout, GitBranch, GitMerge, Flame, Rocket, Shield, Lock, Check, Award, RotateCcw } from "lucide-react";
 import { useStore, isUnlocked, moduleProgress } from "@/state/store";
-import { ALL_MISSIONS, MODULES, TOTAL_XP } from "@/content";
+import { ALL_MISSIONS, MODULES, MAX_XP } from "@/content";
 import type { Module } from "@/content/types";
 import { levelFor } from "@/content/gamification";
 
@@ -40,7 +40,7 @@ export function DojoMap() {
           <div className="muted small">Olá, {playerName} · {lv.level.name} — {lv.level.title}</div>
           <h2>Trilha do Dojo</h2>
           <div className="muted" style={{ marginTop: 6 }}>
-            {done}/{ALL_MISSIONS.length} missões · {xp}/{TOTAL_XP} XP possíveis
+            {done}/{ALL_MISSIONS.length} missões · {xp}/{MAX_XP} XP possíveis
           </div>
         </div>
         <div className="row" style={{ flexWrap: "wrap" }}>
