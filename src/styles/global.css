@@ -1305,3 +1305,54 @@ textarea {
     padding-top: 2px;
   }
 }
+
+/* a Cola impressa: cores legíveis no papel e uma folha só */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+  .cheatsheet {
+    padding: 0;
+    max-width: none;
+    color: #111827;
+  }
+  .cheatsheet .map-head {
+    margin-bottom: 10px;
+  }
+  .cheatsheet h2,
+  .cheat-card h4 {
+    color: #111827;
+  }
+  .cheatsheet .muted {
+    color: #4b5563;
+  }
+  .cheat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .cheat-card {
+    padding: 10px;
+    background: #fff;
+    border-color: #cbd5e1;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  .cheat-card h4 {
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .cheat-card table {
+    font-size: 10px;
+  }
+  .cheat-card td {
+    padding: 3px 0;
+    border-top-color: #e5e7eb;
+  }
+  .cheat-card td:first-child {
+    padding-right: 8px;
+    color: #9a3412;
+  }
+  .cheat-card td:last-child {
+    color: #374151;
+  }
+}
