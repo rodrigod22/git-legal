@@ -15,7 +15,7 @@ export const branches: Module = {
       title: "Sua primeira branch",
       tagline: "Isole uma funcionalidade nova sem tocar na main.",
       story: [
-        "Chegou a demanda: **tela de login**. Na RPA, ninguém desenvolve direto na `main` sem antes isolar o trabalho — você cria uma branch, trabalha nela e só depois integra.",
+        "Chegou a demanda: **tela de login**. Na RPA o padrão é commitar direto na `main`, em commits pequenos, como você vai praticar no módulo Trunk-based. Só que a tela precisa de vários commits até funcionar, e a `main` não pode ficar quebrada nesse meio-tempo. Para esses casos existe a **branch curta**: ela vive poucas horas e volta para a `main` no mesmo dia.",
         "Crie a branch `feature/login`, troque para ela, crie `login.php` e commite. Observe no grafo ao lado o ponteiro `HEAD` se movendo.",
       ],
       concept: {

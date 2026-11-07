@@ -113,6 +113,27 @@ describe("caminhos alternativos ensinados nas dicas", () => {
   });
 });
 
+const textoDe = (id: string) => {
+  const { mission } = findMission(id)!;
+  return [...mission.story, ...(mission.concept?.points ?? []), ...mission.hints].join("\n");
+};
+
+describe("coerência do conteúdo com o fluxo trunk-based", () => {
+  it("nenhuma missão proíbe commitar direto na main", () => {
+    for (const m of ALL_MISSIONS) expect(textoDe(m.id), m.id).not.toMatch(/ningu[eé]m (desenvolve|commita|trabalha) direto na/i);
+  });
+  it("primeira branch apresenta a branch como exceção curta ao commit direto na main", () => {
+    const texto = textoDe("primeira-branch");
+    expect(texto).toMatch(/direto na `main`/);
+    expect(texto).toMatch(/branch curta/i);
+  });
+  it("branch curta explica a atualização sem o desvio do pull --rebase", () => {
+    const texto = textoDe("branch-curta");
+    expect(texto).not.toMatch(/\? Não —/);
+    expect(findMission("branch-curta")!.mission.story.join("\n")).toMatch(/git pull`[\s\S]*git rebase main/);
+  });
+});
+
 describe("todas as missões são resolvíveis", () => {
   for (const mission of ALL_MISSIONS) {
     it(`${mission.id} — ${mission.title}`, () => {

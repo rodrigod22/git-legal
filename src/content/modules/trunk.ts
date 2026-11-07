@@ -145,7 +145,8 @@ export const trunk: Module = {
       tagline: "Quando precisar de uma branch, que ela dure horas, não semanas.",
       story: [
         "Uma mudança um pouco maior: o **modo escuro**. No trunk-based ainda se usa branch, mas **curta**: nasce, recebe 1–3 commits, é atualizada com a main, integrada por fast-forward e apagada no mesmo dia.",
-        "Crie `feat/modo-escuro`, commite o `tema.css`, atualize a branch com `git pull --rebase`? Não — para uma branch local use `git rebase main` depois de atualizar a main. Depois integre na `main` por fast-forward, faça push e apague a branch.",
+        "Crie `feat/modo-escuro` e commite o `tema.css`. Para atualizar a branch, primeiro traga a `main` em dia com `git switch main` e `git pull`. Depois volte para a branch e rode `git rebase main`.",
+        "Por fim, integre na `main` por fast-forward, faça push e apague a branch.",
       ],
       concept: {
         title: "Branches curtas",
