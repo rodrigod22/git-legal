@@ -32,10 +32,19 @@ O progresso fica no `localStorage` do navegador de cada aluno.
 Cada missão é um objeto em `src/content/modules/*.ts`:
 
 - `setup()` monta o repositório inicial com o construtor `sc()` (`.file()`, `.commit()`, `.switch()`, `.remote()`, `.remoteCommit()`…).
-- `objectives[]` são funções `check(ctx)` sobre o repositório e o histórico de comandos.
+- `objectives[]` são funções `check(ctx)` sobre o repositório, o histórico de comandos e os commits exibidos com `git show` (`ctx.shown`).
 - `triggers[]` simulam colegas (ex.: Ana faz push quando você commita).
 
-Depois de criar uma missão, adicione a solução em `src/content/missions.test.ts` — o teste garante que ela é resolvível com os comandos ensinados.
+Depois de criar uma missão, adicione a solução em `src/content/missions.test.ts` — o teste garante que ela é resolvível com os comandos ensinados. Outro teste confere se os comandos citados nos textos e na cola funcionam sem aviso de opção não suportada.
+
+## Limites do simulador
+
+O motor cobre os comandos do treinamento, não o Git inteiro:
+
+- O terminal roda um comando por vez. `&&`, `||`, `|` e `;` fora de aspas geram um aviso, e nada é executado.
+- As opções aceitas por subcomando estão na tabela `OPTIONS`, em `src/engine/commands.ts`. Com outras opções, as consultas (`status`, `log`, `diff`, `show`, `reflog`) avisam e mostram a saída padrão; os demais comandos avisam e não executam nada. O aviso não conta como erro do aluno nem cumpre objetivo.
+- `git config` não tem efeito: a identidade do repositório é fixa.
+- `git add` bloqueia arquivo com marcadores de conflito, como proteção didática. O Git real aceita.
 
 ## Próximos passos sugeridos
 
