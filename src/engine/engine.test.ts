@@ -1218,3 +1218,148 @@ describe("git switch para commit", () => {
     });
   });
 });
+
+describe("git diff com arquivo", () => {
+  const dois = () => run(G.createRepo({ user: "voce" }), "git init", "echo a > a.txt", "echo x > x.txt", "git add .", 'git commit -m "um"', "echo 2 > b.txt", "git add .", 'git commit -m "dois"').repo;
+  // a.txt e x.txt alterados na pasta, sem add
+  const alterado = () => run(dois(), "echo y >> a.txt", "echo y >> x.txt").repo;
+  const arquivos = (lines: string[]) => lines.filter((l) => l.includes("diff --git")).map((l) => l.replace(/<\/?\w>/g, "").split(" b/")[1]);
+  const texto = (lines: string[]) => lines.join("\n");
+
+  for (const cmd of ["git diff a.txt", "git diff -- a.txt", "git diff HEAD a.txt", "git diff HEAD -- a.txt", "git diff main a.txt"]) {
+    it(`${cmd} mostra só o arquivo, sem aviso`, () => {
+      const res = run(alterado(), cmd);
+      expect(res.ok).toBe(true);
+      expect(res.event).not.toBe("unsupported");
+      expect(arquivos(res.lines)).toEqual(["a.txt"]);
+      expect(texto(res.lines)).toContain("+y");
+    });
+  }
+  it("git diff --staged arquivo mostra só o arquivo", () => {
+    for (const cmd of ["git diff --staged a.txt", "git diff --cached a.txt", "git diff --staged -- a.txt"]) {
+      expect(arquivos(run(alterado(), "git add .", cmd).lines)).toEqual(["a.txt"]);
+    }
+  });
+  it("git diff --staged referência arquivo compara a staging com o commit", () => {
+    const res = run(dois(), "echo y >> a.txt", "git add .", "echo z >> a.txt", "git diff --staged HEAD~1 a.txt");
+    expect(arquivos(res.lines)).toEqual(["a.txt"]);
+    expect(texto(res.lines)).toContain("+y");
+    expect(texto(res.lines)).not.toContain("+z");
+  });
+  it("aceita duas referências", () => {
+    for (const cmd of ["git diff HEAD~1 HEAD b.txt", "git diff HEAD~1 HEAD -- b.txt"]) expect(arquivos(run(dois(), cmd).lines)).toEqual(["b.txt"]);
+    expect(run(dois(), "git diff HEAD~1 HEAD a.txt").lines).toEqual([]);
+  });
+  it("aceita mais de um arquivo, pasta e ponto", () => {
+    expect(arquivos(run(alterado(), "git diff a.txt x.txt").lines)).toEqual(["a.txt", "x.txt"]);
+    expect(arquivos(run(alterado(), "git diff .").lines)).toEqual(["a.txt", "x.txt"]);
+    const pasta = run(dois(), "echo 1 > src/s.txt", "git add .", 'git commit -m "s"', "echo 2 > src/s.txt", "echo y >> a.txt").repo;
+    for (const cmd of ["git diff src", "git diff src/", "git diff -- src"]) expect(arquivos(run(pasta, cmd).lines)).toEqual(["src/s.txt"]);
+  });
+  it("arquivo sem alteração não mostra nada", () => {
+    for (const cmd of ["git diff b.txt", "git diff HEAD b.txt", "git diff --staged b.txt", "git diff -- b.txt"]) {
+      const res = run(alterado(), cmd);
+      expect(res.ok).toBe(true);
+      expect(res.lines).toEqual([]);
+    }
+  });
+  it("sem arquivo, mantém a mensagem de que não há diferenças", () => {
+    expect(texto(run(dois(), "git diff").lines)).toContain("sem diferenças");
+  });
+  it("referência sozinha continua comparando com a pasta", () => {
+    expect(arquivos(run(alterado(), "git diff HEAD~1").lines)).toEqual(["a.txt", "b.txt", "x.txt"]);
+    expect(arquivos(run(alterado(), "git diff HEAD~1 --").lines)).toEqual(["a.txt", "b.txt", "x.txt"]);
+  });
+  it("git diff -- sem arquivo funciona como git diff", () => {
+    expect(arquivos(run(alterado(), "git diff --").lines)).toEqual(["a.txt", "x.txt"]);
+  });
+
+  describe("arquivo apagado", () => {
+    it("com --, mostra a deleção", () => {
+      for (const cmd of ["git diff -- b.txt", "git diff HEAD -- b.txt"]) {
+        const res = run(dois(), "rm b.txt", cmd);
+        expect(arquivos(res.lines)).toEqual(["b.txt"]);
+        expect(texto(res.lines)).toContain("deleted file");
+      }
+    });
+    it("deleção em staging aparece com --staged e --", () => {
+      expect(texto(run(dois(), "git rm b.txt", "git diff --staged -- b.txt").lines)).toContain("deleted file");
+    });
+    it("sem --, é erro, porque o nome não está na pasta", () => {
+      for (const cmd of ["git diff b.txt", "git diff HEAD b.txt", "git diff --staged b.txt", "git diff HEAD~1 HEAD b.txt"]) {
+        const res = run(dois(), "rm b.txt", cmd);
+        expect(res.ok).toBe(false);
+        expect(texto(res.lines)).toContain("--");
+      }
+    });
+  });
+
+  describe("arquivo não rastreado e arquivo novo", () => {
+    it("não rastreado não aparece em nenhuma forma", () => {
+      for (const cmd of ["git diff u.txt", "git diff -- u.txt", "git diff HEAD u.txt", "git diff --staged u.txt"]) {
+        const res = run(dois(), "echo u > u.txt", cmd);
+        expect(res.ok).toBe(true);
+        expect(res.lines).toEqual([]);
+      }
+    });
+    it("git diff HEAD não mostra não rastreado", () => {
+      expect(arquivos(run(alterado(), "echo u > u.txt", "git diff HEAD").lines)).toEqual(["a.txt", "x.txt"]);
+    });
+    it("arquivo novo em staging aparece com HEAD e --staged, e não aparece sozinho", () => {
+      const r = run(dois(), "echo n > n.txt", "git add .").repo;
+      expect(run(r, "git diff n.txt").lines).toEqual([]);
+      expect(texto(run(r, "git diff HEAD n.txt").lines)).toContain("new file");
+      expect(texto(run(r, "git diff --staged n.txt").lines)).toContain("new file");
+    });
+  });
+
+  describe("nome desconhecido ou ambíguo", () => {
+    it("nome desconhecido sem -- é erro", () => {
+      for (const cmd of ["git diff nada.txt", "git diff --staged nada.txt", "git diff HEAD nada.txt"]) {
+        const res = run(dois(), cmd);
+        expect(res.ok).toBe(false);
+        expect(res.event).toBe("error");
+        expect(texto(res.lines)).toContain("nada.txt");
+      }
+    });
+    it("com --, nome desconhecido não mostra nada", () => {
+      for (const cmd of ["git diff -- nada.txt", "git diff HEAD -- nada.txt", "git diff --staged -- nada.txt"]) {
+        const res = run(dois(), cmd);
+        expect(res.ok).toBe(true);
+        expect(res.lines).toEqual([]);
+      }
+    });
+    it("nome desconhecido no meio dos arquivos é erro", () => {
+      for (const cmd of ["git diff a.txt nada.txt", "git diff nada.txt a.txt"]) {
+        const res = run(alterado(), cmd);
+        expect(res.ok).toBe(false);
+        expect(texto(res.lines)).toContain("nada.txt");
+      }
+    });
+    it("arquivo antes de referência é erro", () => {
+      expect(run(alterado(), "git diff a.txt HEAD").ok).toBe(false);
+    });
+    it("referência inválida antes de -- é erro", () => {
+      for (const cmd of ["git diff refruim -- a.txt", "git diff a.txt -- x.txt"]) expect(run(alterado(), cmd).ok).toBe(false);
+    });
+    it("nome igual ao de uma branch e ao de um arquivo é ambíguo", () => {
+      const r = run(alterado(), "git branch a.txt").repo;
+      const res = run(r, "git diff a.txt");
+      expect(res.ok).toBe(false);
+      expect(texto(res.lines)).toContain("--");
+      expect(arquivos(run(r, "git diff -- a.txt").lines)).toEqual(["a.txt"]);
+      expect(run(r, "git diff a.txt --").ok).toBe(true);
+    });
+  });
+
+  it("opção desconhecida avisa e aplica o filtro do arquivo", () => {
+    const res = run(alterado(), "git diff --stat -- a.txt");
+    expect(res.lines[0]).toContain("--stat");
+    expect(arquivos(res.lines)).toEqual(["a.txt"]);
+  });
+  it("nome depois de -- pode começar com hífen, sem aviso", () => {
+    const res = run(dois(), "echo y > -y.txt", "git add .", "echo z > -y.txt", "git diff -- -y.txt");
+    expect(res.event).not.toBe("unsupported");
+    expect(arquivos(res.lines)).toEqual(["-y.txt"]);
+  });
+});

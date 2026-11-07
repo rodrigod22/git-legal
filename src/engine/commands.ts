@@ -124,9 +124,9 @@ const HELP = [
   "  <c>clear</c>                   limpa o terminal",
   "",
   "<b>Comandos git suportados</b>",
-  "  init, status, add, commit -m, log [--oneline --graph --all], diff [--staged]",
+  "  init, status, add, commit -m, log [--oneline --graph --all], diff [--staged] [arquivo]",
   "  branch [-d -D -m], checkout [-b], switch [-c], merge [--abort --no-ff]",
-  "  rebase [--continue --abort], reset [--soft --hard] [<ref>] [--] [arquivo], revert, cherry-pick",
+  "  rebase [--continue --abort], reset [--soft --hard | arquivo], revert, cherry-pick",
   "  stash [pop list apply drop], restore [--staged], rm, show, reflog",
   "  fetch, pull [--rebase], push [-u origin <branch>], remote -v",
   "",
@@ -270,7 +270,7 @@ const OPTIONS: Record<string, OptionSpec> = {
   revert: { flags: ["--abort", "--no-edit"] },
   "cherry-pick": { flags: ["--abort"] },
   stash: { flags: [], values: ["-m"] },
-  diff: { flags: ["--staged", "--cached"], readOnly: true },
+  diff: { flags: ["--staged", "--cached", "--"], readOnly: true },
   show: { flags: [], readOnly: true },
   reflog: { flags: [], readOnly: true },
   restore: { flags: ["--staged", "--"] },
@@ -513,11 +513,19 @@ function runGit(repo: Repo, args: string[]): CommandResult {
       return { repo: r, lines: [`Saved working directory and index state ${esc(r.stash[0].message)}`], ok: true, event: "stash" };
     }
     case "diff": {
-      const { f, pos } = flags(rest);
-      const lines = G.diffText(repo, { staged: f.has("--staged") || f.has("--cached"), from: pos[0], to: pos[1] }).map((l) =>
+      const { f, pos, paths: afterDashes } = flagsAndPaths(rest);
+      let revs = pos;
+      let paths = afterDashes ?? [];
+      if (!afterDashes) {
+        const first = pos.findIndex((name) => !isRevision(repo, name, "diff"));
+        if (first !== -1) [revs, paths] = [pos.slice(0, first), pos.slice(first)];
+        const missing = paths.find((p) => !G.existsInWorkdir(repo, p));
+        if (missing) throw new GitError(`fatal: '${missing}' não está na pasta.\ndica: para nomes que não existem na pasta, use '--': git diff -- ${missing}`);
+      }
+      const lines = G.diffText(repo, { staged: f.has("--staged") || f.has("--cached"), from: revs[0], to: revs[1], paths }).map((l) =>
         l.startsWith("+") ? `<g>${esc(l)}</g>` : l.startsWith("-") ? `<r>${esc(l)}</r>` : l.startsWith("diff") ? `<b>${esc(l)}</b>` : esc(l),
       );
-      return { repo, lines: lines.length ? lines : ["<d>(sem diferenças)</d>"], ok: true };
+      return { repo, lines: lines.length || paths.length ? lines : ["<d>(sem diferenças)</d>"], ok: true };
     }
     case "show": {
       const sha = G.resolve(repo, rest[0] ?? "HEAD");

@@ -928,13 +928,18 @@ export function refsAt(repo: Repo, sha: Sha): string[] {
   return refs;
 }
 
-export function diffText(repo: Repo, opts: { staged?: boolean; from?: string; to?: string } = {}): string[] {
+export function diffText(repo: Repo, opts: { staged?: boolean; from?: string; to?: string; paths?: string[] } = {}): string[] {
   assertInit(repo);
   let a: Tree;
   let b: Tree;
   if (opts.from) {
     a = repo.commits[resolve(repo, opts.from)].tree;
-    b = opts.to ? repo.commits[resolve(repo, opts.to)].tree : repo.workdir;
+    if (opts.to) b = repo.commits[resolve(repo, opts.to)].tree;
+    else if (opts.staged) b = repo.index;
+    else {
+      b = { ...repo.workdir };
+      for (const p of untrackedPaths(repo)) delete b[p];
+    }
   } else if (opts.staged) {
     a = headTree(repo);
     b = repo.index;
@@ -942,7 +947,7 @@ export function diffText(repo: Repo, opts: { staged?: boolean; from?: string; to
     a = repo.index;
     b = repo.workdir;
   }
-  return renderDiff(a, b, !opts.from && !opts.staged);
+  return renderDiff(a, b, !opts.from && !opts.staged, opts.paths);
 }
 
 /** O que um commit mudou em relação ao primeiro pai. No commit-raiz, todos os arquivos aparecem como novos. */
@@ -951,10 +956,11 @@ export function commitDiff(repo: Repo, sha: Sha): string[] {
   return renderDiff(c.parents[0] ? repo.commits[c.parents[0]].tree : {}, c.tree);
 }
 
-function renderDiff(a: Tree, b: Tree, skipUntracked = false): string[] {
+function renderDiff(a: Tree, b: Tree, skipUntracked = false, paths: string[] = []): string[] {
   const lines: string[] = [];
   for (const f of treeDiff(a, b)) {
     if (skipUntracked && f.kind === "new") continue; // untracked não aparece em git diff
+    if (paths.length && !paths.some((spec) => matchesPath(f.path, spec))) continue;
     lines.push(`diff --git a/${f.path} b/${f.path}`);
     if (f.kind === "new") lines.push("new file mode 100644");
     if (f.kind === "deleted") lines.push("deleted file mode 100644");
