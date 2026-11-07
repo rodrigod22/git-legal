@@ -480,9 +480,8 @@ function runGit(repo: Repo, args: string[]): CommandResult {
     case "show": {
       const sha = G.resolve(repo, rest[0] ?? "HEAD");
       const c = repo.commits[sha];
-      const parent = c.parents[0];
       const lines = [`<y>commit ${c.sha}</y>${decor(G.refsAt(repo, sha))}`, `Author: ${esc(c.author)}`, `Date:   ${fmtDate(c.timestamp)}`, "", `    ${esc(c.message)}`, ""];
-      if (parent) lines.push(...G.diffText(repo, { from: parent, to: sha }).map((l) => (l.startsWith("+") ? `<g>${esc(l)}</g>` : l.startsWith("-") ? `<r>${esc(l)}</r>` : esc(l))));
+      lines.push(...G.commitDiff(repo, sha).map((l) => (l.startsWith("+") ? `<g>${esc(l)}</g>` : l.startsWith("-") ? `<r>${esc(l)}</r>` : esc(l))));
       return { repo, lines, ok: true };
     }
     case "reflog":
@@ -548,7 +547,12 @@ function runGit(repo: Repo, args: string[]): CommandResult {
       return { repo: res.repo, lines, ok: true, event: "push" };
     }
     case "config":
-      return { repo, lines: ["<d>ok</d>"], ok: true };
+      return {
+        repo,
+        lines: [`<y>aviso: 'git config' não tem efeito no Dojo. Nada foi alterado.</y>`, `<d>Aqui a identidade é fixa (${esc(repo.user.name)}). No seu computador, configure uma vez com git config --global user.name e user.email.</d>`],
+        ok: true,
+        event: "unsupported",
+      };
     default:
       throw new GitError(`git: '${sub}' não é um comando git (ou não é suportado no Dojo). Digite 'git help'.`);
   }

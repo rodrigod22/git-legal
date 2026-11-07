@@ -270,6 +270,40 @@ describe("remoto simulado (trunk-based)", () => {
   });
 });
 
+describe("git config", () => {
+  it("avisa que não tem efeito no Dojo, em vez de responder ok", () => {
+    const r = base();
+    const res = run(r, 'git config --global user.name "Ana"');
+    expect(res.ok).toBe(true);
+    expect(res.lines.join("\n")).toContain("não tem efeito");
+    expect(res.lines.join("\n")).not.toMatch(/^(<d>)?ok(<\/d>)?$/m);
+    expect(res.repo).toBe(r);
+    expect(res.repo.user.name).toBe("voce");
+  });
+});
+
+describe("git show", () => {
+  it("mostra o conteúdo do primeiro commit como arquivo novo", () => {
+    const text = run(base(), "git show").lines.join("\n");
+    expect(text).toContain("new file mode 100644");
+    expect(text).toContain("--- /dev/null");
+    expect(text).toContain("+++ b/README.md");
+    expect(text).toContain("+# Projeto RPA");
+  });
+  it("mostra arquivo apagado com /dev/null no destino", () => {
+    const text = run(base(), 'echo "2" > b.txt', "git add .", 'git commit -m "b"', "rm b.txt", "git add .", 'git commit -m "tira b"', "git show").lines.join("\n");
+    expect(text).toContain("deleted file mode 100644");
+    expect(text).toContain("+++ /dev/null");
+    expect(text).toContain("-2");
+  });
+  it("arquivo modificado continua com os dois caminhos", () => {
+    const text = run(base(), 'echo "nova" >> README.md', "git add .", 'git commit -m "edita"', "git show").lines.join("\n");
+    expect(text).toContain("--- a/README.md");
+    expect(text).toContain("+nova");
+    expect(text).not.toContain("/dev/null");
+  });
+});
+
 describe("opções não suportadas", () => {
   function comBranch() {
     return run(base(), "git switch -c feature", 'echo "f" > f.txt', "git add .", 'git commit -m "feat"', "git switch main", 'echo "m" > m.txt', "git add .", 'git commit -m "main"').repo;

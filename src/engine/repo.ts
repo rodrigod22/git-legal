@@ -867,10 +867,23 @@ export function diffText(repo: Repo, opts: { staged?: boolean; from?: string; to
     a = repo.index;
     b = repo.workdir;
   }
+  return renderDiff(a, b, !opts.from && !opts.staged);
+}
+
+/** O que um commit mudou em relação ao primeiro pai. No commit-raiz, todos os arquivos aparecem como novos. */
+export function commitDiff(repo: Repo, sha: Sha): string[] {
+  const c = getCommit(repo, sha);
+  return renderDiff(c.parents[0] ? repo.commits[c.parents[0]].tree : {}, c.tree);
+}
+
+function renderDiff(a: Tree, b: Tree, skipUntracked = false): string[] {
   const lines: string[] = [];
   for (const f of treeDiff(a, b)) {
-    if (!opts.from && !opts.staged && !(f.path in a)) continue; // untracked não aparece em git diff
-    lines.push(`diff --git a/${f.path} b/${f.path}`, `--- a/${f.path}`, `+++ b/${f.path}`);
+    if (skipUntracked && f.kind === "new") continue; // untracked não aparece em git diff
+    lines.push(`diff --git a/${f.path} b/${f.path}`);
+    if (f.kind === "new") lines.push("new file mode 100644");
+    if (f.kind === "deleted") lines.push("deleted file mode 100644");
+    lines.push(f.kind === "new" ? "--- /dev/null" : `--- a/${f.path}`, f.kind === "deleted" ? "+++ /dev/null" : `+++ b/${f.path}`);
     const ops = diffLines(splitLines(a[f.path] ?? ""), splitLines(b[f.path] ?? ""));
     for (const op of ops) lines.push(op.kind === "same" ? ` ${op.text}` : op.kind === "add" ? `+${op.text}` : `-${op.text}`);
   }
