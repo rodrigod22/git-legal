@@ -1470,6 +1470,34 @@ describe("git switch, git checkout e git merge com trabalho local que colide", (
       expect(G.status(res.repo).staged).toEqual([{ path: "n.txt", kind: "new" }]);
       expect(res.repo.workdir["f.txt"]).toBe("f\n");
     });
+    it("idêntico ao do destino: aceita e fica limpo", () => {
+      const res = run(fx(), "echo f > f.txt", "git add f.txt", "git switch f");
+      expect(res.ok).toBe(true);
+      expect(G.status(res.repo).branch).toBe("f");
+      expect(G.isCleanRepo(res.repo)).toBe(true);
+    });
+  });
+
+  describe("staging igual ao destino", () => {
+    it("edição em staging idêntica ao destino: git switch aceita", () => {
+      const res = run(xconf(), "echo F > x.txt", "git add x.txt", "git switch f");
+      expect(res.ok).toBe(true);
+      expect(G.isCleanRepo(res.repo)).toBe(true);
+    });
+    it("deleção em staging de arquivo que o destino também não tem: git switch e git merge aceitam", () => {
+      for (const cmd of ["git switch f", "git merge f"]) {
+        const res = run(fsemb(), "git rm b.txt", cmd);
+        expect(res.ok).toBe(true);
+        expect(res.repo.workdir).not.toHaveProperty("b.txt");
+        expect(G.isCleanRepo(res.repo)).toBe(true);
+      }
+    });
+    it("edição sem add idêntica ao destino continua recusada, como no Git real", () => {
+      const antes = run(xconf(), "echo F > x.txt").repo;
+      const res = run(antes, "git switch f");
+      expect(res.ok).toBe(false);
+      expect(res.repo).toEqual(antes);
+    });
   });
 
   describe("arquivo apagado da pasta sem git add", () => {

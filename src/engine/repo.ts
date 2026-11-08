@@ -434,7 +434,8 @@ function switchTree(r: Repo, targetSha: Sha | null, what: string) {
   const unstaged = treeDiff(r.index, r.workdir).filter((f) => f.kind !== "new");
   const edited = unstaged.filter((f) => f.kind === "modified").map((f) => f.path);
   const removed = unstaged.filter((f) => f.kind === "deleted").map((f) => f.path);
-  const blocked = [...new Set([...staged, ...edited])].filter(changes).sort();
+  // o que está em staging igual ao destino não é sobrescrito, então passa
+  const blocked = [...new Set([...staged.filter((p) => (r.index[p] ?? null) !== (target[p] ?? null)), ...edited])].filter(changes).sort();
   if (blocked.length) {
     throw new GitError(
       `erro: suas alterações locais nos arquivos abaixo seriam sobrescritas por ${what}:\n${blocked.map((p) => `\t${p}`).join("\n")}\ndica: faça commit ou 'git stash' antes de trocar de branch.`,
@@ -535,7 +536,9 @@ function assertMergeKeepsLocalWork(repo: Repo, merged: Tree, conflicts: string[]
   const s = status(repo);
   const head = headTree(repo);
   const touched = (p: string) => conflicts.includes(p) || head[p] !== merged[p];
-  const local = [...s.staged, ...s.unstaged.filter((f) => f.kind !== "deleted")].map((f) => f.path);
+  // staging igual ao resultado do merge não é sobrescrita, então passa
+  const staged = s.staged.filter((f) => (repo.index[f.path] ?? null) !== (merged[f.path] ?? null) || conflicts.includes(f.path));
+  const local = [...staged, ...s.unstaged.filter((f) => f.kind !== "deleted")].map((f) => f.path);
   const dirty = [...new Set(local)].filter(touched);
   if (dirty.length) {
     throw new GitError(`erro: suas alterações locais seriam sobrescritas por merge:\n${dirty.map((p) => `\t${p}`).join("\n")}\ndica: faça commit ou 'git stash' antes do merge.`);
