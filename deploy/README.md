@@ -46,6 +46,8 @@ echo "login:$(openssl passwd -apr1)" | sudo tee -a /etc/nginx/gitdojo.htpasswd  
 
 Para remover, apague a linha do arquivo com `sudo nano /etc/nginx/gitdojo.htpasswd`. Não precisa recarregar o Nginx. O progresso de cada pessoa continua no navegador dela, não na conta.
 
+Hoje o login aparece como a janela de senha do próprio navegador, porque o vhost usa `auth_basic`. Uma tela de login no visual do Dojo, com botão "Sair", está planejada: o Nginx passa a usar `auth_request` com scripts PHP pequenos em `/var/www/gitdojo/auth/`, que leem este mesmo `htpasswd`. O cadastro, as senhas e o comando acima não mudam.
+
 ## Instalar do zero (feito em 08/11/2026)
 
 Como `deployer`, na VPS:
