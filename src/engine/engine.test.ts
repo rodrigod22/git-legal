@@ -1958,3 +1958,95 @@ describe("N5: git reset sem arquivo durante um conflito", () => {
     });
   });
 });
+
+describe("N6: git diff durante um conflito", () => {
+  const diff = (r: Repo, cmd: string) => {
+    const res = run(r, cmd);
+    expect(res.ok).toBe(true);
+    return res.lines.length ? texto1b4(res.lines).split("\n") : [];
+  };
+  // no merge, o Dojo rotula o lado de cá com o nome da branch; o Git real usa HEAD (desvio N19, registrado no plano)
+  const cc = (label: string, ours = "main") => ["diff --cc x.txt", "--- a/x.txt", "+++ b/x.txt", `++<<<<<<< ${ours}`, " +M", "++=======", "+ F", `++>>>>>>> ${label}`];
+
+  it("git diff mostra o diff combinado do arquivo em conflito, como no Git real", () => {
+    const lines = diff(run(xconf1b4(), "git merge f").repo, "git diff");
+    expect(lines).toEqual(cc("f"));
+  });
+  it("com dois arquivos em conflito, mostra os dois, em ordem", () => {
+    const lines = diff(mergeParado1b4(), "git diff");
+    expect(lines.filter((l) => l.startsWith("diff --cc"))).toEqual(["diff --cc novo.txt", "diff --cc x.txt"]);
+    expect(lines).not.toContain("(sem diferenças)");
+    expect(lines.filter((l) => l === "++=======")).toHaveLength(2);
+  });
+  it("git diff --staged lista o arquivo em conflito como Unmerged path", () => {
+    const lines = diff(mergeParado1b4(), "git diff --staged");
+    expect(lines).toEqual(["* Unmerged path novo.txt", "* Unmerged path x.txt"]);
+  });
+  it("alterações em outros arquivos aparecem junto, em ordem de caminho", () => {
+    const r = run(mergeParado1b4(), "echo s >> a.txt", "git add a.txt", "echo t >> b.txt").repo;
+    const work = diff(r, "git diff");
+    expect(work.filter((l) => /^(diff|\*)/.test(l))).toEqual(["diff --git a/b.txt b/b.txt", "diff --cc novo.txt", "diff --cc x.txt"]);
+    const staged = diff(r, "git diff --staged");
+    expect(staged.filter((l) => /^(diff|\*)/.test(l))).toEqual(["diff --git a/a.txt b/a.txt", "* Unmerged path novo.txt", "* Unmerged path x.txt"]);
+  });
+  it("depois de editar o arquivo sem add, o diff combinado compara com os dois lados", () => {
+    const lines = diff(run(xconf1b4(), "git merge f", "echo R > x.txt").repo, "git diff");
+    expect(lines).toEqual(["diff --cc x.txt", "--- a/x.txt", "+++ b/x.txt", "- M", " -F", "++R"]);
+  });
+  it("depois do add que resolve, git diff fica vazio e --staged vira um diff comum", () => {
+    const r = run(xconf1b4(), "git merge f", "echo R > x.txt", "git add x.txt").repo;
+    expect(diff(r, "git diff")).toEqual(["(sem diferenças)"]);
+    expect(diff(r, "git diff --staged")).toEqual(["diff --git a/x.txt b/x.txt", "--- a/x.txt", "+++ b/x.txt", "-M", "+R"]);
+  });
+  it("vale para conflito de cherry-pick, de revert e de rebase, com o rótulo de cada um", () => {
+    const pick = diff(pickParado1b4(), "git diff");
+    expect(pick.slice(0, 7)).toEqual(cc("", "HEAD").slice(0, 7));
+    expect(pick[7]).toMatch(/^\+\+>>>>>>> [0-9a-f]{7} \(F\)$/);
+    const rev = diff(revertParado1b4(), "git diff");
+    expect(rev.slice(3, 5)).toEqual(["++<<<<<<< HEAD", " +Z2"]);
+    expect(rev[7]).toMatch(/^\+\+>>>>>>> parent of [0-9a-f]{7} \(z\)$/);
+    const rb = diff(rebaseParado1b4(), "git diff");
+    expect(rb.slice(0, 7)).toEqual(cc("", "HEAD").slice(0, 7));
+    expect(rb[7]).toMatch(/^\+\+>>>>>>> [0-9a-f]{7} \(F\)$/);
+  });
+  it("conflito de stash pop também mostra o diff combinado", () => {
+    const r = run(dois1b4(), "echo S > x.txt", "git stash", "echo M > x.txt", "git add .", 'git commit -m "M"', "git stash pop").repo;
+    expect(r.conflicts).toEqual(["x.txt"]);
+    const lines = diff(r, "git diff");
+    expect(lines.slice(0, 5)).toEqual(["diff --cc x.txt", "--- a/x.txt", "+++ b/x.txt", "++<<<<<<< Updated upstream", " +M"]);
+    expect(lines).toContain("+ S");
+  });
+  it("conflito entre modificar e apagar aparece só como Unmerged path", () => {
+    const r = run(dois1b4(), "git switch -c f", "git rm b.txt", 'git commit -m "tira"', "git switch main", "echo B > b.txt", "git add .", 'git commit -m "B"', "git merge f").repo;
+    expect(r.conflicts).toEqual(["b.txt"]);
+    expect(diff(r, "git diff")).toEqual(["* Unmerged path b.txt"]);
+    expect(diff(r, "git diff --staged")).toEqual(["* Unmerged path b.txt"]);
+    expect(diff(r, "git diff HEAD")).toEqual(["(sem diferenças)"]);
+  });
+  it("com arquivo: só o pedido, e arquivo fora do conflito não mostra nada", () => {
+    const r = run(xconf1b4(), "git merge f").repo;
+    expect(diff(r, "git diff x.txt")).toEqual(cc("f"));
+    expect(diff(r, "git diff -- x.txt")).toEqual(cc("f"));
+    expect(diff(r, "git diff --staged x.txt")).toEqual(["* Unmerged path x.txt"]);
+    expect(diff(r, "git diff a.txt")).toEqual([]);
+  });
+
+  describe("o que continua igual", () => {
+    it("git diff HEAD durante o conflito é um diff comum, com os marcadores como linhas novas", () => {
+      const lines = diff(run(xconf1b4(), "git merge f").repo, "git diff HEAD");
+      expect(lines).toEqual(["diff --git a/x.txt b/x.txt", "--- a/x.txt", "+++ b/x.txt", "+<<<<<<< main", " M", "+=======", "+F", "+>>>>>>> f"]);
+    });
+    it("git diff entre duas referências ignora o conflito", () => {
+      const lines = diff(run(xconf1b4(), "git merge f").repo, "git diff HEAD~1 HEAD");
+      expect(lines).toEqual(["diff --git a/x.txt b/x.txt", "--- a/x.txt", "+++ b/x.txt", "-x", "+M"]);
+    });
+    it("o lado 'deles' do conflito some quando o conflito é resolvido ou abortado", () => {
+      const r = run(xconf1b4(), "git merge f").repo;
+      expect(r.theirs).toEqual({ "x.txt": "F\n" });
+      expect(run(r, "echo R > x.txt", "git add x.txt").repo.theirs).toEqual({});
+      expect(run(r, "git merge --abort").repo.theirs).toEqual({});
+      expect(run(r, "git reset").repo.theirs).toEqual({});
+      expect(run(r, "git restore --staged x.txt").repo.theirs).toEqual({});
+    });
+  });
+});

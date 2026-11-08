@@ -57,6 +57,8 @@ export interface Repo {
   index: Tree;
   workdir: Tree;
   conflicts: string[];
+  /** lado "deles" de cada arquivo em conflito (o stage 3 do Git); null quando esse lado apagou o arquivo. O lado "nosso" é o HEAD */
+  theirs: Record<string, string | null>;
   inProgress: InProgress | null;
   rebase: RebaseState | null;
   stash: StashEntry[];

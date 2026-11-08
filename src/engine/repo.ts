@@ -24,6 +24,7 @@ export function createRepo(opts: { user?: string; initialized?: boolean } = {}):
     index: {},
     workdir: {},
     conflicts: [],
+    theirs: {},
     inProgress: null,
     rebase: null,
     stash: [],
@@ -213,13 +214,14 @@ function assertNoUntrackedCollision(repo: Repo, tree: Tree, what: string) {
 }
 
 /** Troca a staging e a parte rastreada da pasta por `tree`. O que não é rastreado fica, salvo se `tree` tiver o mesmo caminho. */
-function replaceTracked(r: Repo, tree: Tree, conflicts: string[] = []) {
+function replaceTracked(r: Repo, tree: Tree, conflicts: string[] = [], theirs: Theirs = {}) {
   const workdir: Tree = { ...tree };
   for (const p of untrackedPaths(r)) if (!(p in tree)) workdir[p] = r.workdir[p];
   r.workdir = workdir;
   r.index = { ...tree };
   for (const p of conflicts) delete r.index[p];
   r.conflicts = conflicts;
+  r.theirs = theirs;
 }
 
 function makeCommit(repo: Repo, parents: Sha[], message: string, tree: Tree, author = repo.user.name): Commit {
@@ -329,9 +331,11 @@ export function add(repo: Repo, paths: string[]): Repo {
       }
       r.index[p] = r.workdir[p];
       r.conflicts = r.conflicts.filter((c) => c !== p);
+      delete r.theirs[p];
     } else if (p in r.index) {
       delete r.index[p];
       r.conflicts = r.conflicts.filter((c) => c !== p);
+      delete r.theirs[p];
     } else {
       throw new GitError(`fatal: pathspec '${p}' não corresponde a nenhum arquivo`);
     }
@@ -350,7 +354,10 @@ export function unstage(repo: Repo, paths: string[], source?: string): Repo {
     if (p in from) r.index[p] = from[p];
     else delete r.index[p];
   }
-  if (paths.length) r.conflicts = r.conflicts.filter((c) => !targets.includes(c));
+  if (paths.length) {
+    r.conflicts = r.conflicts.filter((c) => !targets.includes(c));
+    for (const p of targets) delete r.theirs[p];
+  }
   return r;
 }
 
@@ -509,10 +516,13 @@ export interface MergeResult {
   to: Sha;
 }
 
-/** Faz o merge 3-way de duas árvores. Devolve a árvore resultante e os arquivos em conflito. */
-function mergeTrees(base: Tree, ours: Tree, theirs: Tree, labels: { ours: string; theirs: string }) {
+type Theirs = Repo["theirs"];
+
+/** Faz o merge 3-way de duas árvores. Devolve a árvore resultante, os arquivos em conflito e o lado "deles" de cada um. */
+function mergeTrees(base: Tree, ours: Tree, theirs: Tree, labels: { ours: string; theirs: string }): { tree: Tree; conflicts: string[]; theirs: Theirs } {
   const tree: Tree = {};
   const conflicts: string[] = [];
+  const stage3: Theirs = {};
   const paths = new Set([...Object.keys(base), ...Object.keys(ours), ...Object.keys(theirs)]);
   for (const p of [...paths].sort()) {
     const b = base[p];
@@ -527,14 +537,18 @@ function mergeTrees(base: Tree, ours: Tree, theirs: Tree, labels: { ours: string
     } else if (o === undefined || t === undefined) {
       // modificado de um lado, apagado do outro
       conflicts.push(p);
+      stage3[p] = t ?? null;
       tree[p] = (o ?? t) as string;
     } else {
       const m = merge3(b ?? "", o, t, labels);
       tree[p] = m.text;
-      if (m.conflict) conflicts.push(p);
+      if (m.conflict) {
+        conflicts.push(p);
+        stage3[p] = t;
+      }
     }
   }
-  return { tree, conflicts };
+  return { tree, conflicts, theirs: stage3 };
 }
 
 /** Como no Git real, o merge só recusa trabalho local que ele sobrescreveria. Arquivo apagado da pasta sem add não conta: o merge repõe a versão dele. */
@@ -575,7 +589,7 @@ export function merge(repo: Repo, ref: string, opts: { noFf?: boolean; message?:
   const base = baseSha ? r.commits[baseSha].tree : {};
   const label = currentBranch(r) ?? short(head);
   const ours = r.commits[head].tree;
-  const { tree, conflicts } = mergeTrees(base, ours, r.commits[target].tree, { ours: label, theirs: ref });
+  const { tree, conflicts, theirs } = mergeTrees(base, ours, r.commits[target].tree, { ours: label, theirs: ref });
   const staged = status(r).staged;
   if (staged.length) {
     // só o merge de três vias exige a staging limpa: o commit de merge não pode levar outra coisa junto
@@ -591,6 +605,7 @@ export function merge(repo: Repo, ref: string, opts: { noFf?: boolean; message?:
   r.index = { ...tree };
   for (const c of conflicts) delete r.index[c];
   r.conflicts = conflicts;
+  r.theirs = theirs;
   r.inProgress = { kind: "merge", other: target, message, label: ref };
   if (conflicts.length) return { repo: r, kind: "conflict", conflicts, from: head, to: target };
   const done = commit(r, message);
@@ -618,6 +633,7 @@ export function abortInProgress(repo: Repo, kind: InProgress["kind"]): Repo {
   }
   r.index = { ...head };
   r.conflicts = [];
+  r.theirs = {};
   r.inProgress = null;
   return r;
 }
@@ -642,7 +658,7 @@ export interface SkippedCommit {
   reason: "na-base" | "vazio";
 }
 
-function applyCommitOnto(r: Repo, c: Commit, ontoTree: Tree): { tree: Tree; conflicts: string[] } {
+function applyCommitOnto(r: Repo, c: Commit, ontoTree: Tree): ReturnType<typeof mergeTrees> {
   const parentTree = c.parents[0] ? r.commits[c.parents[0]].tree : {};
   return mergeTrees(parentTree, ontoTree, c.tree, { ours: "HEAD", theirs: `${short(c.sha)} (${c.message})` });
 }
@@ -660,14 +676,14 @@ function continueRebaseLoop(r: Repo, skipped: SkippedCommit[] = []): RebaseResul
     const sha = rb.todo[0];
     const c = r.commits[sha];
     const ontoTree = r.commits[rb.head].tree;
-    const { tree, conflicts } = applyCommitOnto(r, c, ontoTree);
+    const { tree, conflicts, theirs } = applyCommitOnto(r, c, ontoTree);
     const collisions = untrackedCollisions(r, tree);
     if (collisions.length) {
       r.head = { type: "detached", sha: rb.head };
       const message = `${collisionMessage(collisions, "rebase")}\nO rebase parou antes do commit ${short(sha)} (${c.message}).\ndica: depois disso, 'git rebase --continue' tenta de novo. Para desistir: 'git rebase --abort'.`;
       return { repo: r, kind: "blocked", applied, conflicts: [], message, skipped };
     }
-    replaceTracked(r, tree, conflicts);
+    replaceTracked(r, tree, conflicts, theirs);
     if (conflicts.length) {
       rb.current = sha;
       r.head = { type: "detached", sha: rb.head };
@@ -801,6 +817,7 @@ export function reset(repo: Repo, ref: string, mode: "soft" | "mixed" | "hard" =
   if (mode === "mixed") {
     r.index = { ...tree };
     r.conflicts = [];
+    r.theirs = {};
     r.inProgress = null;
   }
   if (mode === "hard") {
@@ -821,10 +838,10 @@ export function revert(repo: Repo, ref: string): MergeResult {
   const head = headSha(repo)!;
   const r = clone(repo);
   const parentTree = c.parents[0] ? r.commits[c.parents[0]].tree : {};
-  const { tree, conflicts } = mergeTrees(c.tree, r.commits[head].tree, parentTree, { ours: "HEAD", theirs: `parent of ${short(sha)}` });
+  const { tree, conflicts, theirs } = mergeTrees(c.tree, r.commits[head].tree, parentTree, { ours: "HEAD", theirs: `parent of ${short(sha)} (${c.message})` });
   assertNoUntrackedCollision(r, tree, "revert");
   const message = `Revert "${c.message}"\n\nThis reverts commit ${sha}.`;
-  replaceTracked(r, tree, conflicts);
+  replaceTracked(r, tree, conflicts, theirs);
   r.inProgress = { kind: "revert", other: null, message, label: short(sha) };
   if (conflicts.length) return { repo: r, kind: "conflict", conflicts, from: head, to: sha };
   return { repo: commit(r, message), kind: "merge-commit", conflicts: [], from: head, to: sha };
@@ -838,9 +855,9 @@ export function cherryPick(repo: Repo, ref: string): MergeResult {
   const c = getCommit(repo, sha);
   const head = headSha(repo)!;
   const r = clone(repo);
-  const { tree, conflicts } = applyCommitOnto(r, c, r.commits[head].tree);
+  const { tree, conflicts, theirs } = applyCommitOnto(r, c, r.commits[head].tree);
   assertNoUntrackedCollision(r, tree, "cherry-pick");
-  replaceTracked(r, tree, conflicts);
+  replaceTracked(r, tree, conflicts, theirs);
   r.inProgress = { kind: "cherry-pick", other: null, message: c.message, label: short(sha) };
   if (conflicts.length) return { repo: r, kind: "conflict", conflicts, from: head, to: sha };
   return { repo: commit(r, c.message), kind: "merge-commit", conflicts: [], from: head, to: sha };
@@ -877,9 +894,10 @@ export function stashPop(repo: Repo, apply = false): Repo {
   const entry = apply ? r.stash[0] : r.stash.shift()!;
   const head = headTree(r);
   const baseTree = r.commits[entry.base].tree;
-  const { tree, conflicts } = mergeTrees(baseTree, head, entry.workdir, { ours: "Updated upstream", theirs: "Stashed changes" });
+  const { tree, conflicts, theirs } = mergeTrees(baseTree, head, entry.workdir, { ours: "Updated upstream", theirs: "Stashed changes" });
   r.workdir = { ...r.workdir, ...tree };
   r.conflicts = conflicts;
+  r.theirs = theirs;
   return r;
 }
 
@@ -1004,26 +1022,35 @@ export function refsAt(repo: Repo, sha: Sha): string[] {
   return refs;
 }
 
+/**
+ * Como no Git real, arquivo em conflito aparece no `git diff` como diff combinado (`diff --cc`), comparando a pasta
+ * com os dois lados; no `--staged`, como `* Unmerged path`. Comparações com um commit ignoram o conflito.
+ */
 export function diffText(repo: Repo, opts: { staged?: boolean; from?: string; to?: string; paths?: string[] } = {}): string[] {
   assertInit(repo);
   let a: Tree;
   let b: Tree;
+  let unmerged: UnmergedRender | undefined;
   if (opts.from) {
     a = repo.commits[resolve(repo, opts.from)].tree;
     if (opts.to) b = repo.commits[resolve(repo, opts.to)].tree;
-    else if (opts.staged) b = repo.index;
-    else {
+    else if (opts.staged) {
+      b = repo.index;
+      unmerged = { paths: repo.conflicts };
+    } else {
       b = { ...repo.workdir };
       for (const p of untrackedPaths(repo)) delete b[p];
     }
   } else if (opts.staged) {
     a = headTree(repo);
     b = repo.index;
+    unmerged = { paths: repo.conflicts };
   } else {
     a = repo.index;
     b = repo.workdir;
+    unmerged = { paths: repo.conflicts, combined: { ours: headTree(repo), theirs: repo.theirs, work: repo.workdir } };
   }
-  return renderDiff(a, b, !opts.from && !opts.staged, opts.paths);
+  return renderDiff(a, b, { skipUntracked: !opts.from && !opts.staged, paths: opts.paths, unmerged });
 }
 
 /** O que um commit mudou em relação ao primeiro pai. No commit-raiz, todos os arquivos aparecem como novos. */
@@ -1032,17 +1059,74 @@ export function commitDiff(repo: Repo, sha: Sha): string[] {
   return renderDiff(c.parents[0] ? repo.commits[c.parents[0]].tree : {}, c.tree);
 }
 
-function renderDiff(a: Tree, b: Tree, skipUntracked = false, paths: string[] = []): string[] {
+interface UnmergedRender {
+  paths: string[];
+  /** com os dois lados, o arquivo sai como diff combinado; sem isso, como "* Unmerged path" */
+  combined?: { ours: Tree; theirs: Theirs; work: Tree };
+}
+
+function renderDiff(a: Tree, b: Tree, opts: { skipUntracked?: boolean; paths?: string[]; unmerged?: UnmergedRender } = {}): string[] {
+  const paths = opts.paths ?? [];
+  const wanted = (p: string) => !paths.length || paths.some((spec) => matchesPath(p, spec));
+  const unmerged = (opts.unmerged?.paths ?? []).filter(wanted);
   const lines: string[] = [];
+  const entries: { path: string; render: () => void }[] = [];
   for (const f of treeDiff(a, b)) {
-    if (skipUntracked && f.kind === "new") continue; // untracked não aparece em git diff
-    if (paths.length && !paths.some((spec) => matchesPath(f.path, spec))) continue;
-    lines.push(`diff --git a/${f.path} b/${f.path}`);
-    if (f.kind === "new") lines.push("new file mode 100644");
-    if (f.kind === "deleted") lines.push("deleted file mode 100644");
-    lines.push(f.kind === "new" ? "--- /dev/null" : `--- a/${f.path}`, f.kind === "deleted" ? "+++ /dev/null" : `+++ b/${f.path}`);
-    const ops = diffLines(splitLines(a[f.path] ?? ""), splitLines(b[f.path] ?? ""));
-    for (const op of ops) lines.push(op.kind === "same" ? ` ${op.text}` : op.kind === "add" ? `+${op.text}` : `-${op.text}`);
+    if (opts.skipUntracked && f.kind === "new") continue; // untracked não aparece em git diff
+    if (!wanted(f.path) || unmerged.includes(f.path)) continue;
+    entries.push({
+      path: f.path,
+      render: () => {
+        lines.push(`diff --git a/${f.path} b/${f.path}`);
+        if (f.kind === "new") lines.push("new file mode 100644");
+        if (f.kind === "deleted") lines.push("deleted file mode 100644");
+        lines.push(f.kind === "new" ? "--- /dev/null" : `--- a/${f.path}`, f.kind === "deleted" ? "+++ /dev/null" : `+++ b/${f.path}`);
+        const ops = diffLines(splitLines(a[f.path] ?? ""), splitLines(b[f.path] ?? ""));
+        for (const op of ops) lines.push(op.kind === "same" ? ` ${op.text}` : op.kind === "add" ? `+${op.text}` : `-${op.text}`);
+      },
+    });
+  }
+  for (const p of unmerged) {
+    const c = opts.unmerged?.combined;
+    const ours = c?.ours[p];
+    const theirs = c?.theirs[p];
+    entries.push({
+      path: p,
+      render: () => {
+        if (!c || ours === undefined || theirs == null || !(p in c.work)) {
+          lines.push(`* Unmerged path ${p}`);
+          return;
+        }
+        lines.push(`diff --cc ${p}`, `--- a/${p}`, `+++ b/${p}`, ...combinedDiff([ours, theirs], c.work[p]));
+      },
+    });
+  }
+  for (const e of entries.sort((x, y) => (x.path < y.path ? -1 : x.path > y.path ? 1 : 0))) e.render();
+  return lines;
+}
+
+/** Diff combinado do Git: cada linha do resultado ganha uma coluna por lado (`+` se não estava nele), e o que um lado perdeu sai com `-` na coluna dele. */
+function combinedDiff(parents: string[], result: string): string[] {
+  const work = splitLines(result);
+  const added = parents.map(() => new Set<number>());
+  const lost = parents.map(() => new Map<number, string[]>());
+  parents.forEach((parent, k) => {
+    let i = 0;
+    for (const op of diffLines(splitLines(parent), work)) {
+      if (op.kind === "del") lost[k].set(i, [...(lost[k].get(i) ?? []), op.text]);
+      else {
+        if (op.kind === "add") added[k].add(i);
+        i++;
+      }
+    }
+  });
+  const col = (k: number, mark: string) => parents.map((_, j) => (j === k ? mark : " ")).join("");
+  const lines: string[] = [];
+  for (let i = 0; i <= work.length; i++) {
+    parents.forEach((_, k) => {
+      for (const text of lost[k].get(i) ?? []) lines.push(`${col(k, "-")}${text}`);
+    });
+    if (i < work.length) lines.push(`${parents.map((_, k) => (added[k].has(i) ? "+" : " ")).join("")}${work[i]}`);
   }
   return lines;
 }
