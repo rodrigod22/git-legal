@@ -632,8 +632,11 @@ export function merge(repo: Repo, ref: string, opts: { noFf?: boolean; message?:
   return { repo: done, kind: "merge-commit", conflicts: [], from: head, to: target };
 }
 
+/** Como no Git real, `revert --abort` e `cherry-pick --abort` valem um pelo outro: os dois encerram a mesma operação. */
 export function abortInProgress(repo: Repo, kind: InProgress["kind"]): Repo {
-  if (!repo.inProgress || repo.inProgress.kind !== kind) throw new GitError(`fatal: não há ${kind} em andamento`);
+  const sequencer = kind !== "merge" && repo.inProgress?.kind !== "merge";
+  if (!repo.inProgress || (repo.inProgress.kind !== kind && !sequencer)) throw new GitError(`fatal: não há ${kind} em andamento`);
+  kind = repo.inProgress.kind;
   assertNoUntrackedCollision(repo, headTree(repo), `${kind} --abort`);
   // como git reset --merge: arquivo em staging que foi editado depois do add seria perdido, então é recusado
   const s = status(repo);
@@ -838,12 +841,10 @@ export function reset(repo: Repo, ref: string, mode: "soft" | "mixed" | "hard" =
     r.index = { ...tree };
     r.conflicts = [];
     r.theirs = {};
-    r.inProgress = null;
   }
-  if (mode === "hard") {
-    replaceTracked(r, tree);
-    r.inProgress = null;
-  }
+  // sem arquivo, o reset encerra o que estava em andamento em qualquer modo, inclusive --soft num cherry-pick ou revert sem conflito
+  r.inProgress = null;
+  if (mode === "hard") replaceTracked(r, tree);
   pushReflog(r, `reset: moving to ${ref}`);
   return r;
 }
@@ -862,9 +863,14 @@ function assertNotMergeCommit(c: Commit, what: "revert" | "cherry-pick") {
  * Sem efeito (o HEAD já não tem a mudança), o revert para com erro e não fica em andamento, como no Git real.
  * O resultado "empty" vem com o repositório inalterado.
  */
+/** Como no Git real, um cherry-pick ou revert aberto sem conflito (o que ficou vazio) não impede outro revert ou cherry-pick, que o substitui. */
+function assertSequencerFree(repo: Repo, what: string) {
+  if (repo.rebase || repo.inProgress?.kind === "merge") assertNoInProgress(repo, what);
+}
+
 export function revert(repo: Repo, ref: string): MergeResult {
   assertInit(repo);
-  assertNoInProgress(repo, "revert");
+  assertSequencerFree(repo, "revert");
   const sha = resolve(repo, ref);
   const c = getCommit(repo, sha);
   assertNotMergeCommit(c, "revert");
@@ -888,7 +894,7 @@ export function revert(repo: Repo, ref: string): MergeResult {
  */
 export function cherryPick(repo: Repo, ref: string): MergeResult {
   assertInit(repo);
-  assertNoInProgress(repo, "cherry-pick");
+  assertSequencerFree(repo, "cherry-pick");
   const sha = resolve(repo, ref);
   const c = getCommit(repo, sha);
   assertNotMergeCommit(c, "cherry-pick");

@@ -497,7 +497,7 @@ function runGit(repo: Repo, args: string[]): CommandResult {
     }
     case "revert": {
       const { f, pos } = flags(rest);
-      if (f.has("--abort")) return { repo: G.abortInProgress(repo, "revert"), lines: ["<d>Revert abortado.</d>"], ok: true };
+      if (f.has("--abort")) return { repo: G.abortInProgress(repo, "revert"), lines: [`<d>${repo.inProgress?.kind === "cherry-pick" ? "Cherry-pick" : "Revert"} abortado.</d>`], ok: true };
       if (!pos[0]) throw new GitError("fatal: informe o commit a reverter. Ex.: git revert HEAD");
       const res = G.revert(repo, pos[0]);
       if (res.kind === "empty") {
@@ -508,7 +508,7 @@ function runGit(repo: Repo, args: string[]): CommandResult {
     }
     case "cherry-pick": {
       const { f, pos } = flags(rest);
-      if (f.has("--abort")) return { repo: G.abortInProgress(repo, "cherry-pick"), lines: ["<d>Cherry-pick abortado.</d>"], ok: true };
+      if (f.has("--abort")) return { repo: G.abortInProgress(repo, "cherry-pick"), lines: [`<d>${repo.inProgress?.kind === "revert" ? "Revert" : "Cherry-pick"} abortado.</d>`], ok: true };
       if (!pos[0]) throw new GitError("fatal: informe o commit. Ex.: git cherry-pick a1b2c3d");
       const res = G.cherryPick(repo, pos[0]);
       if (res.kind === "empty") {

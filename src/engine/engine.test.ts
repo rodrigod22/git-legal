@@ -2104,6 +2104,33 @@ describe("N8: cherry-pick e revert sem efeito", () => {
       expect(res.repo.inProgress?.kind).toBe("cherry-pick");
       expect(Object.keys(res.repo.commits)).toHaveLength(2);
     });
+    it("git revert --abort também encerra o cherry-pick, e vice-versa, como no Git real", () => {
+      const pick = run(noop1b4(), "git cherry-pick f", "git revert --abort");
+      expect(pick.ok).toBe(true);
+      expect(pick.repo.inProgress).toBeNull();
+      expect(texto1b4(pick.lines)).toContain("Cherry-pick abortado");
+      const rev = run(revertParado1b4(), "git cherry-pick --abort");
+      expect(rev.ok).toBe(true);
+      expect(rev.repo.inProgress).toBeNull();
+      expect(G.isCleanRepo(rev.repo)).toBe(true);
+      expect(run(pickParado1b4(), "git merge --abort").ok).toBe(false);
+    });
+    it("git reset --soft também encerra o cherry-pick vazio, que não tem conflito", () => {
+      const res = run(noop1b4(), "git cherry-pick f", "git reset --soft");
+      expect(res.ok).toBe(true);
+      expect(res.repo.inProgress).toBeNull();
+    });
+    it("um revert ou cherry-pick com efeito durante o cherry-pick vazio segue normalmente e encerra o vazio", () => {
+      const rev = run(noop1b4(), "git cherry-pick f", "git revert HEAD");
+      expect(rev.ok).toBe(true);
+      expect(rev.repo.inProgress).toBeNull();
+      expect(mensagens1b4(rev.repo)[0]).toBe('Revert "igual-m"');
+      const r = run(noop1b4(), "git switch -c h HEAD~1", "echo h > h.txt", "git add .", 'git commit -m "h"', "git switch main").repo;
+      const pick = run(r, "git cherry-pick f", "git cherry-pick h");
+      expect(pick.ok).toBe(true);
+      expect(mensagens1b4(pick.repo)).toEqual(["h", "igual-m", "dois", "um"]);
+      expect(pick.repo.inProgress).toBeNull();
+    });
     it("conflito resolvido igual ao HEAD: git commit é recusado, e --abort encerra sem perder nada", () => {
       const antes = pickParado1b4();
       const commit = run(antes, "echo M > x.txt", "git add x.txt", 'git commit -m "x"');
@@ -2194,10 +2221,11 @@ describe("N9: cherry-pick e revert de commit de merge", () => {
     expect(res.ok).toBe(false);
     expect(texto1b4(res.lines)).toContain("referência desconhecida");
   });
-  it("durante um cherry-pick parado, a recusa é pela operação em andamento", () => {
+  it("durante um cherry-pick parado em conflito, a recusa é pelos conflitos, como no Git real", () => {
     const res = run(pickParado1b4(), "git cherry-pick HEAD~1");
     expect(res.ok).toBe(false);
-    expect(texto1b4(res.lines)).toContain("em andamento");
+    expect(texto1b4(res.lines)).toContain("conflitos");
+    expect(res.repo).toEqual(pickParado1b4());
   });
   it("cherry-pick e revert de commit comum continuam funcionando", () => {
     const r = mrg1b4();
