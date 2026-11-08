@@ -58,7 +58,8 @@ export function Terminal() {
   const prompt = session ? promptFor(session.repo) : "projeto-rpa";
 
   useEffect(() => {
-    outRef.current?.scrollTo({ top: outRef.current.scrollHeight, behavior: "smooth" });
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    outRef.current?.scrollTo({ top: outRef.current.scrollHeight, behavior: reduce ? "auto" : "smooth" });
   }, [session?.lines.length]);
 
   // no toque, o foco automático abriria o teclado e rolaria a página para longe do título da missão

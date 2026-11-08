@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Terminal as TerminalIcon, GitMerge, Trophy } from "lucide-react";
 import { useStore } from "@/state/store";
 import { ALL_MISSIONS, MODULES } from "@/content";
@@ -19,6 +19,7 @@ const DEMO = [
 export function Home() {
   const { playerName, setPlayerName, go, progress } = useStore();
   const [name, setName] = useState(playerName);
+  const reduce = useReducedMotion();
   const done = Object.keys(progress).length;
 
   const start = () => {
@@ -80,7 +81,7 @@ export function Home() {
             <i />
           </div>
           {DEMO.map((l, i) => (
-            <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 + i * 0.28 }} style={{ whiteSpace: "pre-wrap" }}>
+            <motion.div key={i} initial={reduce ? false : { opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={reduce ? { duration: 0 } : { delay: 0.4 + i * 0.28 }} style={{ whiteSpace: "pre-wrap" }}>
               {"p" in l ? (
                 <>
                   <span style={{ color: "#4ade80" }}>{l.p}</span> $ {l.c}

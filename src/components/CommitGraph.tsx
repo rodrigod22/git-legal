@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { layoutGraph } from "@/engine/graph";
 import type { Repo } from "@/engine/types";
 import { short } from "@/engine/hash";
@@ -14,6 +14,7 @@ const R = 9;
 
 export function CommitGraph({ repo }: { repo: Repo }) {
   const insertInTerminal = useStore((s) => s.insertInTerminal);
+  const reduce = useReducedMotion();
   const layout = useMemo(() => layoutGraph(repo), [repo]);
   const width = Math.max(520, PAD_X * 2 + layout.lanes * LANE_W + 420);
   const height = Math.max(240, PAD_Y * 2 + layout.rows * ROW_H);
@@ -79,10 +80,10 @@ export function CommitGraph({ repo }: { repo: Repo }) {
                 stroke={color}
                 strokeWidth={2.2}
                 strokeOpacity={0.75}
-                initial={{ pathLength: 0, opacity: 0 }}
+                initial={reduce ? false : { pathLength: 0, opacity: 0 }}
                 animate={{ pathLength: 1, opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.45, ease: "easeOut" }}
+                transition={reduce ? { duration: 0 } : { duration: 0.45, ease: "easeOut" }}
               />
             );
           })}
@@ -95,10 +96,10 @@ export function CommitGraph({ repo }: { repo: Repo }) {
             return (
               <motion.g
                 key={n.sha}
-                initial={{ opacity: 0, scale: 0.4, x: cx, y: cy }}
+                initial={reduce ? false : { opacity: 0, scale: 0.4, x: cx, y: cy }}
                 animate={{ opacity: 1, scale: 1, x: cx, y: cy }}
                 exit={{ opacity: 0, scale: 0.4 }}
-                transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 260, damping: 22 }}
               >
                 {n.isHead && <circle r={R + 7} fill={color} fillOpacity={0.18} filter="url(#glow)" />}
                 {n.isMerge ? (
@@ -140,7 +141,7 @@ export function CommitGraph({ repo }: { repo: Repo }) {
                   const lx = labelX - cx + 62 + 240 + prevW;
                   const fill = l.kind === "head" ? "#22d3ee" : l.kind === "remote" ? "#f97316" : "#22c55e";
                   return (
-                    <motion.g key={l.name} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
+                    <motion.g key={l.name} initial={reduce ? false : { opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
                       <rect x={lx} y={-11} width={w} height={22} rx={6} fill={fill} fillOpacity={0.14} stroke={fill} strokeOpacity={0.7} />
                       <text x={lx + 8} y={4} fill={fill} fontFamily="var(--mono)" fontSize={10.5} fontWeight={700}>
                         {l.name}

@@ -5,6 +5,7 @@ export function Confetti({ run }: { run: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     if (!run || !ref.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const canvas = ref.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;

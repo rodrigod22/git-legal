@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { MotionConfig } from "framer-motion";
 import { useStore } from "@/state/store";
 import { Topbar } from "@/components/Topbar";
 import { Toasts } from "@/components/Toasts";
@@ -24,7 +25,9 @@ export default function App() {
   const effective = !playerName && view !== "home" ? "home" : view;
 
   return (
-    <>
+    // reducedMotion="user": com "reduzir movimento" ligado no sistema, deslocamentos, escalas e tamanhos
+    // trocam de valor sem animar; só a opacidade ainda faz uma transição curta
+    <MotionConfig reducedMotion="user">
       <Topbar />
       <main>
         {effective === "home" && <Home />}
@@ -36,6 +39,6 @@ export default function App() {
       </main>
       <Toasts />
       <MissionComplete />
-    </>
+    </MotionConfig>
   );
 }
