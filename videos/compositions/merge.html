@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280, height=720" />
+    <script src="../assets/gsap.min.js"></script>
+    <link rel="stylesheet" href="../assets/dojo.css" />
+    <style>
+      #root { position: relative; width: 1280px; height: 720px; font-family: var(--font); color: var(--text); overflow: hidden; --mc: #a855f7; --mc-rgb: 168, 85, 247; }
+      .rotulo-grafo { font-size: 24px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+      .rotulo-grafo b { color: var(--text); text-transform: none; letter-spacing: 0; font-size: 26px; margin-left: 12px; font-weight: 600; }
+      .sem-commit { margin: 24px; padding: 18px 20px; border-radius: var(--radius-sm); border: 1px dashed var(--border-strong); color: var(--muted); font-size: 25px; line-height: 1.35; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="merge" data-start="0" data-duration="60" data-width="1280" data-height="720" data-fps="30">
+      <div class="fundo"></div>
+      <div class="grade"></div>
+      <div class="particulas" data-layout-allow-overflow></div>
+      <div class="vinheta"></div>
+
+      <!-- Cena 1 (0–7 s) -->
+      <section id="c1" class="clip cena centro" data-start="0" data-duration="7" data-track-index="0">
+        <div class="numero" data-anim="c1-num"><b>03</b> / 06</div>
+        <div class="icone" data-anim="c1-icone" data-icone="git-merge" data-cor="#a855f7"></div>
+        <div class="sobre" data-anim="c1-sobre">Módulo 3 · Git Dojo</div>
+        <h1 class="titulo" data-anim="c1-titulo">Merge</h1>
+        <p class="subtitulo" data-anim="c1-sub">Integrando o trabalho: fast-forward e merge de três vias</p>
+      </section>
+
+      <!-- Cena 2: a feature ficou pronta (7–17 s) -->
+      <section id="c2" class="clip cena" data-start="7" data-duration="10" data-track-index="0">
+        <h2 class="h2" data-anim="c2-h2">A feature ficou pronta</h2>
+        <div class="cartoes">
+          <div class="cartao" data-anim="c2-cartao-a">
+            <header><span class="avatar" style="background:var(--cyan)">V</span> Você <span class="ramo" style="color:var(--green);border-color:rgba(34,197,94,.5)">feature/login</span></header>
+            <div class="codigo">
+              <span class="linha nova" data-anim="c2-l1"><span class="n">+</span>adiciona login</span>
+              <span class="linha nova" data-anim="c2-l2"><span class="n">+</span>valida senha</span>
+              <span class="linha dim"><span class="n"> </span>2 commits novos</span>
+            </div>
+          </div>
+          <div class="cartao" data-anim="c2-cartao-b">
+            <header><span class="avatar" style="background:var(--accent)">M</span> main <span class="ramo" style="color:var(--accent);border-color:rgba(240,80,50,.5)">main</span></header>
+            <div class="sem-commit" data-anim="c2-sem">Nenhum commit novo desde que a branch nasceu.</div>
+          </div>
+        </div>
+        <p class="legenda" data-anim="c2-legenda">Hora de trazer o trabalho de volta. <b>Merge</b> é isso: a main recebe o que a branch fez.</p>
+      </section>
+
+      <!-- Cena 3: fast-forward no terminal (17–27 s) -->
+      <section id="c3" class="clip cena" data-start="17" data-duration="10" data-track-index="0">
+        <div class="terminal compacto" data-anim="c3-terminal">
+          <div class="barra"><i></i><i></i><i></i><span>projeto-rpa</span></div>
+          <pre><span class="prompt">$</span> <span class="cmd" id="c3-cmd1"></span>
+<span data-anim="c3-s1"><span class="dim">Switched to branch 'main'</span></span>
+<span data-anim="c3-l2"><span class="prompt">$</span> <span class="cmd" id="c3-cmd2"></span><span class="cursor" data-anim="c3-cursor"></span></span>
+<span data-anim="c3-s2"><span class="dim">Updating a1b2c3d..9f8e7d6</span>
+<span class="ok">Fast-forward</span>
+<span class="dim"> login.php | 2 ++</span></span></pre>
+        </div>
+        <p class="frase" data-anim="c3-frase">A main não andou: o merge é só o ponteiro avançando.<br /><span>Nenhum commit novo é criado.</span></p>
+      </section>
+
+      <!-- Cena 4: dois jeitos de integrar (27–42 s) -->
+      <section id="c4" class="clip cena" data-start="27" data-duration="15" data-track-index="0">
+        <h2 class="h2" data-anim="c4-h2">Dois jeitos de integrar</h2>
+        <div style="margin-top:22px" data-anim="c4-r1"><span class="rotulo-grafo">Fast-forward <b>a main só alcança a feature</b></span></div>
+        <div id="c4-ff" style="height:160px;width:1120px"></div>
+        <div style="margin-top:6px" data-anim="c4-r2"><span class="rotulo-grafo">Três vias <b>as duas andaram: nasce um commit de merge, com dois pais</b></span></div>
+        <div id="c4-tw" style="height:175px;width:1120px"></div>
+      </section>
+
+      <!-- Cena 5: regras (42–52 s) -->
+      <section id="c5" class="clip cena" data-start="42" data-duration="10" data-track-index="0">
+        <h2 class="h2" data-anim="c5-h2">Três coisas para lembrar</h2>
+        <div class="regra" data-anim="c5-r1"><span class="num">1</span><p><b>Faça o merge estando na branch que recebe.</b> <span class="mono">git switch main</span> primeiro, <span class="mono">git merge feature/login</span> depois.</p></div>
+        <div class="regra" data-anim="c5-r2"><span class="num">2</span><p><b>Partes diferentes do código se combinam sozinhas.</b> Quando os dois lados mexem na mesma linha, é conflito: o próximo módulo.</p></div>
+        <div class="regra" data-anim="c5-r3"><span class="num">3</span><p><b><span class="mono">--no-ff</span> é opção, não regra.</b> Força um commit de merge para a feature ficar visível como uma "bolha" no histórico. Use só quando isso tiver valor.</p></div>
+      </section>
+
+      <!-- Cena 6 (52–60 s) -->
+      <section id="c6" class="clip cena centro" data-start="52" data-duration="8" data-track-index="0">
+        <div class="check" data-anim="c6-check"><span data-icone="check" data-cor="#22c55e" style="display:contents"></span> Trabalho integrado. Histórico linear.</div>
+        <p class="fecho" style="margin-top:28px" data-anim="c6-fecho">Fast-forward quando dá.<br /><span>Commit de merge quando precisa.</span></p>
+        <p class="legenda" data-anim="c6-missao">Missão 1: <b>Fast-forward</b></p>
+      </section>
+
+      <div class="varredura"></div>
+      <div class="rodape">Git Dojo · módulo <b>Merge</b></div>
+      <div class="marca" data-anim="marca"><i></i> Git Dojo · RPA Tecnologia</div>
+      <div class="progresso"><i></i></div>
+
+      <audio id="au-01" class="clip" data-hf-media-start-basis="local" src="../assets/audio/musica-merge.m4a" data-start="0" data-duration="60" data-volume="0.5" data-fade-in="0.5" data-fade-out="2.5" data-track-index="1"></audio>
+      <audio id="au-02" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-logo.wav" data-start="0.3" data-duration="1.6" data-volume="0.55" data-track-index="2"></audio>
+      <audio id="au-03" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-whoosh.wav" data-start="6.5" data-duration="0.7" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-04" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="7.8" data-duration="0.14" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-05" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-tick.wav" data-start="8.7" data-duration="0.06" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-06" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-tick.wav" data-start="9.1" data-duration="0.06" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-07" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="9.9" data-duration="0.14" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-08" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="12.6" data-duration="0.14" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-09" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-whoosh.wav" data-start="16.5" data-duration="0.7" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-10" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-digitacao.wav" data-start="17.8" data-duration="1.0" data-volume="0.6" data-track-index="2"></audio>
+      <audio id="au-11" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-enter.wav" data-start="18.9" data-duration="0.12" data-volume="0.6" data-track-index="2"></audio>
+      <audio id="au-12" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-digitacao.wav" data-start="19.8" data-duration="1.4" data-volume="0.6" data-track-index="2"></audio>
+      <audio id="au-13" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-enter.wav" data-start="21.3" data-duration="0.12" data-volume="0.6" data-track-index="2"></audio>
+      <audio id="au-14" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-sucesso.wav" data-start="21.6" data-duration="0.9" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-15" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-whoosh.wav" data-start="26.5" data-duration="0.7" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-16" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="28.2" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-17" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="28.6" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-18" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="29.0" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-19" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="29.4" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-20" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-deslize.wav" data-start="30.6" data-duration="0.4" data-volume="0.55" data-track-index="2"></audio>
+      <audio id="au-21" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="33.6" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-22" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="34.0" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-23" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="34.6" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-24" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="35.2" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-25" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-sucesso.wav" data-start="36.8" data-duration="0.9" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-26" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-whoosh.wav" data-start="41.5" data-duration="0.7" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-27" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="43.0" data-duration="0.14" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-28" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="45.4" data-duration="0.14" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-29" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="47.8" data-duration="0.14" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-30" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-whoosh.wav" data-start="51.5" data-duration="0.7" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-31" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-sucesso.wav" data-start="52.4" data-duration="0.9" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-32" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-logo.wav" data-start="55.6" data-duration="1.6" data-volume="0.6" data-track-index="2"></audio>
+    </div>
+
+    <script src="../assets/dojo.js"></script>
+    <script>
+      dojo.montaIcones();
+      const tl = dojo.timeline();
+      const el = dojo.el;
+      dojo.barra(tl, 60);
+      dojo.particulas(tl, 22, 40);
+      const G = "#22c55e", M = "#f05032", V = "#8b5cf6";
+
+      // Cena 1
+      dojo.camera(tl, 0, 7, 1.0, 1.05);
+      tl.fromTo(el("c1-icone"), { opacity: 0, scale: 0.6, rotate: -12 }, { opacity: 1, scale: 1, rotate: 0, duration: 0.8, ease: "back.out(1.6)" }, 0.2);
+      dojo.entra(tl, "c1-sobre", 0.7);
+      tl.fromTo(el("c1-titulo"), { opacity: 0, y: 44, letterSpacing: "0.05em" }, { opacity: 1, y: 0, letterSpacing: "-0.03em", duration: 0.9, ease: "power4.out" }, 0.9);
+      dojo.entra(tl, "c1-sub", 1.6);
+      dojo.entraX(tl, "c1-num", 1.2, 30);
+      dojo.sai(tl, "#c1", 6.4);
+
+      // Cena 2
+      dojo.camera(tl, 7, 17, 1.05, 1.0);
+      dojo.entra(tl, "c2-h2", 7.2);
+      dojo.entraX(tl, "c2-cartao-a", 7.7, -40);
+      tl.set([el("c2-l1"), el("c2-l2")], { opacity: 0 }, 7);
+      tl.to(el("c2-l1"), { opacity: 1, duration: 0.25 }, 8.7);
+      tl.to(el("c2-l2"), { opacity: 1, duration: 0.25 }, 9.1);
+      dojo.entraX(tl, "c2-cartao-b", 9.8, 40);
+      dojo.entra(tl, "c2-sem", 10.6);
+      dojo.entra(tl, "c2-legenda", 12.6);
+      dojo.sai(tl, "#c2", 16.4);
+
+      // Cena 3
+      dojo.camera(tl, 17, 27, 1.0, 1.04);
+      dojo.entra(tl, "c3-terminal", 17.2);
+      tl.set([el("c3-s1"), el("c3-l2"), el("c3-s2")], { opacity: 0 }, 17);
+      dojo.digita(tl, "c3-cmd1", "git switch main", 17.8, 1.0);
+      tl.to(el("c3-s1"), { opacity: 1, duration: 0.2 }, 19.0);
+      tl.to(el("c3-l2"), { opacity: 1, duration: 0.1 }, 19.6);
+      dojo.digita(tl, "c3-cmd2", "git merge feature/login", 19.8, 1.4);
+      tl.set(el("c3-cursor"), { opacity: 0 }, 21.4);
+      tl.to(el("c3-s2"), { opacity: 1, duration: 0.3 }, 21.6);
+      dojo.entra(tl, "c3-frase", 23.0);
+      dojo.sai(tl, "#c3", 26.4);
+
+      // Cena 4: dois grafos
+      dojo.camera(tl, 27, 42, 1.04, 1.0);
+      dojo.entra(tl, "c4-h2", 27.2);
+      dojo.entra(tl, "c4-r1", 27.6);
+      dojo.grafo(document.getElementById("c4-ff"), {
+        largura: 1120, altura: 160,
+        nos: [{ id: "a", x: 120, y: 76, cor: M }, { id: "b", x: 340, y: 76, cor: M }, { id: "c", x: 560, y: 76, cor: G }, { id: "d", x: 780, y: 76, cor: G }],
+        arestas: [{ id: "e1", de: "a", para: "b", cor: M }, { id: "e2", de: "b", para: "c", cor: G }, { id: "e3", de: "c", para: "d", cor: G }],
+        tags: [{ id: "feat", no: "d", texto: "feature/login", cor: G, dy: -62 }, { id: "main", no: "b", texto: "main", cor: M, dy: 70 }],
+        textos: [{ id: "t1", x: 860, y: 84, texto: "ponteiro anda, nada é criado", cor: "#94a3b8" }],
+      }, "ff");
+      dojo.escondeTudo(tl, ["ff-a", "ff-b", "ff-c", "ff-d", "ff-e1", "ff-e2", "ff-e3", "ff-feat", "ff-main", "ff-t1"], 27);
+      ["ff-a", "ff-b", "ff-c", "ff-d"].forEach((n, i) => dojo.noEntra(tl, n, 28.2 + i * 0.4));
+      ["ff-e1", "ff-e2", "ff-e3"].forEach((n, i) => dojo.desenha(tl, n, 28.4 + i * 0.4, 0.35));
+      dojo.tagEntra(tl, "ff-main", 29.6);
+      dojo.tagEntra(tl, "ff-feat", 29.9);
+      tl.to(el("ff-main"), { x: 440, duration: 1.0, ease: "power3.inOut" }, 30.6);
+      tl.to([el("ff-c"), el("ff-e2"), el("ff-e3")], { attr: {} , duration: 0.01 }, 31.6);
+      tl.to(el("ff-c").querySelector(".no"), { fill: M, duration: 0.4 }, 31.2);
+      tl.to(el("ff-d").querySelector(".no"), { fill: M, duration: 0.4 }, 31.4);
+      tl.to([el("ff-e2"), el("ff-e3")], { stroke: M, duration: 0.4 }, 31.2);
+      tl.to(el("ff-t1"), { opacity: 1, duration: 0.4 }, 31.8);
+
+      dojo.entra(tl, "c4-r2", 33.0);
+      dojo.grafo(document.getElementById("c4-tw"), {
+        largura: 1120, altura: 175,
+        nos: [{ id: "a", x: 120, y: 120, cor: M }, { id: "base", x: 340, y: 120, cor: V, rotulo: "base" }, { id: "m", x: 560, y: 120, cor: M, rotulo: "main andou" }, { id: "f", x: 560, y: 52, cor: G, rotulo: "" }, { id: "mg", x: 780, y: 90, cor: M, quadrado: true, rotulo: "merge" }],
+        arestas: [{ id: "e1", de: "a", para: "base", cor: M }, { id: "e2", de: "base", para: "m", cor: M }, { id: "e3", de: "base", para: "f", cor: G, curva: true }, { id: "e4", de: "m", para: "mg", cor: M, curva: true }, { id: "e5", de: "f", para: "mg", cor: G, curva: true }],
+        tags: [{ id: "feat", no: "f", texto: "feature", cor: G, dx: 150, dy: 0 }, { id: "main", no: "mg", texto: "main", cor: M, dy: -62 }],
+        textos: [{ id: "t1", x: 860, y: 150, texto: "2 pais: registra a união", cor: "#94a3b8" }],
+      }, "tw");
+      dojo.escondeTudo(tl, ["tw-a", "tw-base", "tw-m", "tw-f", "tw-mg", "tw-e1", "tw-e2", "tw-e3", "tw-e4", "tw-e5", "tw-feat", "tw-main", "tw-t1"], 27);
+      dojo.noEntra(tl, "tw-a", 33.6); dojo.desenha(tl, "tw-e1", 33.8, 0.3); dojo.noEntra(tl, "tw-base", 34.0);
+      dojo.desenha(tl, "tw-e2", 34.3, 0.3); dojo.noEntra(tl, "tw-m", 34.6);
+      dojo.desenha(tl, "tw-e3", 34.8, 0.4); dojo.noEntra(tl, "tw-f", 35.2); dojo.tagEntra(tl, "tw-feat", 35.5);
+      dojo.desenha(tl, "tw-e4", 36.2, 0.5); dojo.desenha(tl, "tw-e5", 36.2, 0.5);
+      dojo.noEntra(tl, "tw-mg", 36.7); dojo.tagEntra(tl, "tw-main", 37.1);
+      tl.to(el("tw-t1"), { opacity: 1, duration: 0.4 }, 37.6);
+      dojo.sai(tl, "#c4", 41.4);
+
+      // Cena 5
+      dojo.camera(tl, 42, 52, 1.0, 1.04);
+      dojo.entra(tl, "c5-h2", 42.2);
+      dojo.entraX(tl, "c5-r1", 43.0, 40);
+      dojo.entraX(tl, "c5-r2", 45.4, 40);
+      dojo.entraX(tl, "c5-r3", 47.8, 40);
+      dojo.sai(tl, "#c5", 51.4);
+
+      // Cena 6
+      dojo.camera(tl, 52, 60, 1.04, 1.08);
+      dojo.entra(tl, "c6-check", 52.4);
+      dojo.entra(tl, "c6-fecho", 53.4);
+      dojo.entra(tl, "c6-missao", 54.8);
+      tl.set(el("marca"), { opacity: 0 }, 0);
+      dojo.entra(tl, "marca", 55.6);
+      tl.to("#c6", { opacity: 0, duration: 0.7, ease: "power2.in" }, 59.2);
+
+      dojo.fim(tl, "merge");
+    </script>
+  </body>
+</html>

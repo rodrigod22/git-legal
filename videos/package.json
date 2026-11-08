@@ -1,0 +1,19 @@
+{
+  "name": "git-dojo-videos",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Vídeos de abertura dos módulos do Git Dojo, compostos em HTML e renderizados localmente com o HyperFrames",
+  "type": "module",
+  "scripts": {
+    "doctor": "hyperframes doctor",
+    "preview": "hyperframes preview",
+    "lint": "hyperframes lint",
+    "check": "hyperframes check",
+    "render": "node ferramentas/renderizar.mjs",
+    "audio": "python -I ferramentas/gerar-audio.py",
+    "conferir": "node ferramentas/conferir-renders.mjs"
+  },
+  "dependencies": {
+    "hyperframes": "0.9.23"
+  }
+}

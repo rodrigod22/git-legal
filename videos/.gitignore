@@ -1,0 +1,5 @@
+node_modules/
+renders/
+.hyperframes/
+assets/audio/*.wav
+!assets/audio/sfx-*.wav

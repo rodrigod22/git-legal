@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280, height=720" />
+    <script src="../assets/gsap.min.js"></script>
+    <link rel="stylesheet" href="../assets/dojo.css" />
+    <style>
+      #root { position: relative; width: 1280px; height: 720px; font-family: var(--font); color: var(--text); overflow: hidden; --mc: #f97316; --mc-rgb: 249, 115, 22; }
+      .vezes { font-size: 26px; color: var(--muted); margin-top: 26px; }
+      .vezes b { color: var(--mc); font-weight: 700; }
+      .ban { display: flex; gap: 28px; margin-top: 30px; }
+      .motivo { margin-top: 26px; }
+      .toast { width: 400px; top: 96px; }
+      .toast span { color: #cbd5e1; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="trunk" data-start="0" data-duration="60" data-width="1280" data-height="720" data-fps="30">
+      <div class="fundo"></div>
+      <div class="grade"></div>
+      <div class="particulas" data-layout-allow-overflow></div>
+      <div class="vinheta"></div>
+
+      <!-- Cena 1 (0–7 s) -->
+      <section id="c1" class="clip cena centro" data-start="0" data-duration="7" data-track-index="0">
+        <div class="numero" data-anim="c1-num"><b>05</b> / 06</div>
+        <div class="icone" data-anim="c1-icone" data-icone="rocket" data-cor="#f97316"></div>
+        <div class="sobre" data-anim="c1-sobre">Módulo 5 · Git Dojo</div>
+        <h1 class="titulo" data-anim="c1-titulo">Trunk-based</h1>
+        <p class="subtitulo" data-anim="c1-sub">O fluxo oficial da RPA: commits pequenos, direto na main, várias vezes por dia</p>
+      </section>
+
+      <!-- Cena 2: alguém chegou antes (7–18 s) -->
+      <section id="c2" class="clip cena" data-start="7" data-duration="11" data-track-index="0">
+        <h2 class="h2" data-anim="c2-h2">Alguém chegou antes</h2>
+        <div class="terminal compacto" style="margin-top:24px;width:700px" data-anim="c2-terminal">
+          <div class="barra"><i></i><i></i><i></i><span>projeto-rpa — main</span></div>
+          <pre><span class="prompt">$</span> <span class="cmd" id="c2-cmd1"></span>
+<span data-anim="c2-s1"><span class="dim">[main 3e4f5a6] adiciona página sobre</span></span>
+<span data-anim="c2-l2"><span class="prompt">$</span> <span class="cmd" id="c2-cmd2"></span><span class="cursor" data-anim="c2-cursor"></span></span>
+<span data-anim="c2-s2"><span class="erro"> ! [rejected]        main -> main (fetch first)</span>
+<span class="dim">hint: Updates were rejected because the remote contains work you do not have.</span></span></pre>
+        </div>
+        <div class="toast" data-anim="c2-toast"><span class="avatar" style="background:#c4b5fd">A</span><div><b>Ana fez push</b><span>Ana acabou de enviar “ajusta título do index” para origin/main</span></div></div>
+        <p class="legenda" style="margin-top:18px;font-size:29px" data-anim="c2-legenda">O remoto só aceita push quando o que ele tem é <b>ancestral</b> do seu commit. A Ana passou na frente.</p>
+      </section>
+
+      <!-- Cena 3: o ritual (18–28 s) -->
+      <section id="c3" class="clip cena" data-start="18" data-duration="10" data-track-index="0">
+        <div class="terminal compacto" data-anim="c3-terminal">
+          <div class="barra"><i></i><i></i><i></i><span>projeto-rpa — main</span></div>
+          <pre><span class="prompt">$</span> <span class="cmd" id="c3-cmd1"></span>
+<span data-anim="c3-s1"><span class="ok">Successfully rebased and updated</span> <span class="dim">refs/heads/main.</span></span>
+<span data-anim="c3-l2"><span class="prompt">$</span> <span class="cmd" id="c3-cmd2"></span><span class="cursor" data-anim="c3-cursor"></span></span>
+<span data-anim="c3-s2"><span class="dim">To github.com:rpa-exemplo/projeto-rpa.git</span>
+<span class="ok">   a1b2c3d..7d8e9f0  main -> main</span></span></pre>
+        </div>
+        <p class="frase" data-anim="c3-frase">Seus commits reaplicados por cima dos da Ana.<br /><span>Histórico linear, sem commit de merge.</span></p>
+      </section>
+
+      <!-- Cena 4: uma linha só (28–42 s) -->
+      <section id="c4" class="clip cena" data-start="28" data-duration="14" data-track-index="0">
+        <h2 class="h2" data-anim="c4-h2">Uma linha só, o time inteiro</h2>
+        <div id="c4-grafo" style="margin-top:10px;height:230px" data-anim="c4-grafo"></div>
+        <div class="passos" style="margin-top:6px" data-anim="c4-passos">
+          <div class="passo" data-anim="c4-s1">commit pequeno<small>compila, não quebra</small></div><span class="mais">→</span>
+          <div class="passo" data-anim="c4-s2">git pull --rebase<small>traz o que chegou</small></div><span class="mais">→</span>
+          <div class="passo" data-anim="c4-s3">git push<small>envia já</small></div>
+          <div class="vezes" style="margin:0 0 0 30px" data-anim="c4-vezes">… <b>várias vezes por dia</b></div>
+        </div>
+        <p class="legenda" style="margin-top:22px;font-size:28px" data-anim="c4-legenda">Quanto mais tempo um commit fica só na sua máquina, maior a chance de conflito. <b>Pequeno e frequente vence grande e raro.</b></p>
+      </section>
+
+      <!-- Cena 5: proibido na main (42–52 s) -->
+      <section id="c5" class="clip cena" data-start="42" data-duration="10" data-track-index="0">
+        <h2 class="h2" data-anim="c5-h2">Proibido na <span class="mono">main</span></h2>
+        <div class="ban">
+          <div class="proibido" data-anim="c5-b1"><span data-icone="ban" data-cor="#ef4444" style="display:contents"></span> git push --force</div>
+          <div class="proibido" data-anim="c5-b2"><span data-icone="ban" data-cor="#ef4444" style="display:contents"></span> git reset</div>
+        </div>
+        <div class="alerta-caixa motivo" data-anim="c5-motivo"><b>O motivo:</b> a main está na máquina de todo mundo. Reescrever o histórico do remoto deixa os repositórios dos colegas divergentes, o próximo <span class="mono">pull</span> vira conflito e trabalho pode se perder.</div>
+        <div style="display:flex;align-items:center;gap:26px;margin-top:26px" data-anim="c5-ok">
+          <div class="permitido"><span data-icone="check" data-cor="#22c55e" style="display:contents"></span> git revert &lt;commit&gt;</div>
+          <p class="legenda" style="margin:0;font-size:28px">desfaz com um <b>commit novo</b>. Nada é apagado; tudo fica auditável.</p>
+        </div>
+      </section>
+
+      <!-- Cena 6 (52–60 s) -->
+      <section id="c6" class="clip cena centro" data-start="52" data-duration="8" data-track-index="0">
+        <div class="check" data-anim="c6-check"><span data-icone="check" data-cor="#22c55e" style="display:contents"></span> Push aceito. Histórico linear.</div>
+        <p class="fecho" style="margin-top:28px" data-anim="c6-fecho">Commit pequeno, pull --rebase, push.<br /><span>Várias vezes por dia. Agora é com você.</span></p>
+        <p class="legenda" data-anim="c6-missao">Missão 1: <b>Push rejeitado</b></p>
+      </section>
+
+      <div class="varredura"></div>
+      <div class="rodape">Git Dojo · módulo <b>Trunk-based na RPA</b></div>
+      <div class="marca" data-anim="marca"><i></i> Git Dojo · RPA Tecnologia</div>
+      <div class="progresso"><i></i></div>
+
+      <audio id="au-01" class="clip" data-hf-media-start-basis="local" src="../assets/audio/musica-trunk.m4a" data-start="0" data-duration="60" data-volume="0.5" data-fade-in="0.5" data-fade-out="2.5" data-track-index="1"></audio>
+      <audio id="au-02" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-logo.wav" data-start="0.3" data-duration="1.6" data-volume="0.55" data-track-index="2"></audio>
+      <audio id="au-03" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-whoosh.wav" data-start="6.5" data-duration="0.7" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-04" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-digitacao.wav" data-start="8.0" data-duration="1.8" data-volume="0.6" data-track-index="2"></audio>
+      <audio id="au-05" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-enter.wav" data-start="9.9" data-duration="0.12" data-volume="0.6" data-track-index="2"></audio>
+      <audio id="au-06" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="11.0" data-duration="0.14" data-volume="0.6" data-track-index="2"></audio>
+      <audio id="au-07" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-digitacao.wav" data-start="12.6" data-duration="0.7" data-volume="0.6" data-track-index="2"></audio>
+      <audio id="au-08" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-enter.wav" data-start="13.4" data-duration="0.12" data-volume="0.6" data-track-index="2"></audio>
+      <audio id="au-09" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-erro.wav" data-start="13.7" data-duration="0.55" data-volume="0.55" data-track-index="2"></audio>
+      <audio id="au-10" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="15.2" data-duration="0.14" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-11" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-whoosh.wav" data-start="17.5" data-duration="0.7" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-12" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-digitacao.wav" data-start="18.8" data-duration="1.1" data-volume="0.6" data-track-index="2"></audio>
+      <audio id="au-13" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-enter.wav" data-start="20.0" data-duration="0.12" data-volume="0.6" data-track-index="2"></audio>
+      <audio id="au-14" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-deslize.wav" data-start="20.2" data-duration="0.4" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-15" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-digitacao.wav" data-start="21.4" data-duration="0.6" data-volume="0.6" data-track-index="2"></audio>
+      <audio id="au-16" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-enter.wav" data-start="22.1" data-duration="0.12" data-volume="0.6" data-track-index="2"></audio>
+      <audio id="au-17" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-sucesso.wav" data-start="22.4" data-duration="0.9" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-18" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-whoosh.wav" data-start="27.5" data-duration="0.7" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-19" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="29.0" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-20" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="29.5" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-21" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="30.0" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-22" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="30.5" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-23" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="31.0" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-24" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="31.5" data-duration="0.14" data-volume="0.4" data-track-index="2"></audio>
+      <audio id="au-25" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-tick.wav" data-start="33.4" data-duration="0.06" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-26" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-tick.wav" data-start="34.1" data-duration="0.06" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-27" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-tick.wav" data-start="34.8" data-duration="0.06" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-28" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-tick.wav" data-start="35.5" data-duration="0.06" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-29" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-tick.wav" data-start="36.2" data-duration="0.06" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-30" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-tick.wav" data-start="36.9" data-duration="0.06" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-31" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="38.4" data-duration="0.14" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-32" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-whoosh.wav" data-start="41.5" data-duration="0.7" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-33" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-alerta.wav" data-start="43.0" data-duration="0.6" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-34" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-alerta.wav" data-start="43.8" data-duration="0.6" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-35" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-pop.wav" data-start="45.2" data-duration="0.14" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-36" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-sucesso.wav" data-start="48.2" data-duration="0.9" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-37" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-whoosh.wav" data-start="51.5" data-duration="0.7" data-volume="0.45" data-track-index="2"></audio>
+      <audio id="au-38" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-sucesso.wav" data-start="52.4" data-duration="0.9" data-volume="0.5" data-track-index="2"></audio>
+      <audio id="au-39" class="clip" data-hf-media-start-basis="local" src="../assets/audio/sfx-logo.wav" data-start="55.6" data-duration="1.6" data-volume="0.6" data-track-index="2"></audio>
+    </div>
+
+    <script src="../assets/dojo.js"></script>
+    <script>
+      dojo.montaIcones();
+      const tl = dojo.timeline();
+      const el = dojo.el;
+      dojo.barra(tl, 60);
+      dojo.particulas(tl, 26, 36);
+      const M = "#f05032", V = "#8b5cf6", G = "#22c55e", O = "#f97316";
+
+      // Cena 1
+      dojo.camera(tl, 0, 7, 1.0, 1.05);
+      tl.fromTo(el("c1-icone"), { opacity: 0, scale: 0.6, rotate: -12 }, { opacity: 1, scale: 1, rotate: 0, duration: 0.8, ease: "back.out(1.6)" }, 0.2);
+      dojo.entra(tl, "c1-sobre", 0.7);
+      tl.fromTo(el("c1-titulo"), { opacity: 0, y: 44, letterSpacing: "0.05em" }, { opacity: 1, y: 0, letterSpacing: "-0.03em", duration: 0.9, ease: "power4.out" }, 0.9);
+      dojo.entra(tl, "c1-sub", 1.6);
+      dojo.entraX(tl, "c1-num", 1.2, 30);
+      dojo.sai(tl, "#c1", 6.4);
+
+      // Cena 2
+      dojo.camera(tl, 7, 18, 1.05, 1.0);
+      dojo.entra(tl, "c2-h2", 7.2);
+      dojo.entra(tl, "c2-terminal", 7.5);
+      tl.set([el("c2-s1"), el("c2-l2"), el("c2-s2"), el("c2-toast")], { opacity: 0 }, 7);
+      dojo.digita(tl, "c2-cmd1", 'git commit -m "adiciona página sobre"', 8.0, 1.8);
+      tl.to(el("c2-s1"), { opacity: 1, duration: 0.2 }, 10.0);
+      tl.fromTo(el("c2-toast"), { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 11.0);
+      tl.to(el("c2-l2"), { opacity: 1, duration: 0.1 }, 12.4);
+      dojo.digita(tl, "c2-cmd2", "git push", 12.6, 0.7);
+      tl.set(el("c2-cursor"), { opacity: 0 }, 13.5);
+      tl.to(el("c2-s2"), { opacity: 1, duration: 0.2 }, 13.7);
+      dojo.treme(tl, el("c2-terminal"), 13.75);
+      dojo.entra(tl, "c2-legenda", 15.2);
+      dojo.sai(tl, "#c2", 17.4);
+
+      // Cena 3
+      dojo.camera(tl, 18, 28, 1.0, 1.04);
+      dojo.entra(tl, "c3-terminal", 18.2);
+      tl.set([el("c3-s1"), el("c3-l2"), el("c3-s2")], { opacity: 0 }, 18);
+      dojo.digita(tl, "c3-cmd1", "git pull --rebase", 18.8, 1.1);
+      tl.to(el("c3-s1"), { opacity: 1, duration: 0.2 }, 20.2);
+      tl.to(el("c3-l2"), { opacity: 1, duration: 0.1 }, 21.2);
+      dojo.digita(tl, "c3-cmd2", "git push", 21.4, 0.6);
+      tl.set(el("c3-cursor"), { opacity: 0 }, 22.2);
+      tl.to(el("c3-s2"), { opacity: 1, duration: 0.3 }, 22.4);
+      dojo.entra(tl, "c3-frase", 23.8);
+      dojo.sai(tl, "#c3", 27.4);
+
+      // Cena 4: a linha do tempo do time
+      dojo.camera(tl, 28, 42, 1.04, 1.0);
+      dojo.entra(tl, "c4-h2", 28.2);
+      const quem = [["você", M], ["ana", V], ["carlos", G], ["você", M], ["ana", V], ["você", M]];
+      dojo.grafo(document.getElementById("c4-grafo"), {
+        largura: 1120, altura: 230,
+        nos: quem.map((q, i) => ({ id: "n" + i, x: 110 + i * 180, y: 130, cor: q[1], rotulo: q[0] })),
+        arestas: quem.slice(1).map((q, i) => ({ id: "e" + i, de: "n" + i, para: "n" + (i + 1), cor: M })),
+        tags: [{ id: "origem", no: "n5", texto: "origin/main", cor: O, dy: -66 }],
+      }, "t");
+      dojo.escondeTudo(tl, ["t-n0", "t-n1", "t-n2", "t-n3", "t-n4", "t-n5", "t-e0", "t-e1", "t-e2", "t-e3", "t-e4", "t-origem", "c4-vezes"], 28);
+      for (let i = 0; i < 6; i++) {
+        dojo.noEntra(tl, "t-n" + i, 29.0 + i * 0.5);
+        if (i < 5) dojo.desenha(tl, "t-e" + i, 29.2 + i * 0.5, 0.4);
+      }
+      dojo.tagEntra(tl, "t-origem", 32.0);
+      dojo.entra(tl, "c4-passos", 32.6);
+      const passos = ["c4-s1", "c4-s2", "c4-s3"];
+      for (let v = 0; v < 2; v++) passos.forEach((n, i) => {
+        const t = 33.4 + v * 2.1 + i * 0.7;
+        tl.set(el(n), { className: "passo ativo" }, t);
+        tl.set(el(passos[(i + 2) % 3]), { className: "passo" }, t);
+      });
+      tl.set(el("c4-s3"), { className: "passo" }, 38.2);
+      dojo.entra(tl, "c4-vezes", 37.8);
+      dojo.entra(tl, "c4-legenda", 38.4);
+      dojo.sai(tl, "#c4", 41.4);
+
+      // Cena 5
+      dojo.camera(tl, 42, 52, 1.0, 1.04);
+      dojo.entra(tl, "c5-h2", 42.2);
+      dojo.salta(tl, "c5-b1", 43.0);
+      dojo.salta(tl, "c5-b2", 43.8);
+      dojo.entra(tl, "c5-motivo", 45.2);
+      dojo.entra(tl, "c5-ok", 48.2);
+      dojo.sai(tl, "#c5", 51.4);
+
+      // Cena 6
+      dojo.camera(tl, 52, 60, 1.04, 1.08);
+      dojo.entra(tl, "c6-check", 52.4);
+      dojo.entra(tl, "c6-fecho", 53.4);
+      dojo.entra(tl, "c6-missao", 54.8);
+      tl.set(el("marca"), { opacity: 0 }, 0);
+      dojo.entra(tl, "marca", 55.6);
+      tl.to("#c6", { opacity: 0, duration: 0.7, ease: "power2.in" }, 59.2);
+
+      dojo.fim(tl, "trunk");
+    </script>
+  </body>
+</html>
