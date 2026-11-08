@@ -9,6 +9,7 @@ Treinamento interativo e gamificado de Git para estagiários e devs: **branches,
 - **Grafo de commits animado** que reage a cada comando; clique ou Enter em um hash o coloca na linha de comando.
 - **Editor com resolvedor de conflitos** (manter atual / entrada / ambos).
 - **23 missões em 6 módulos** (`src/content/modules/`), com objetivos verificados automaticamente, dicas, cola de comandos, "colegas" que fazem push no meio da missão e um chefão.
+- **Regras do fluxo da RPA**, validadas e resumidas no topo da Cola: commit direto na `main`, branch local curta opcional, correções com prefixo `fix:`, `pull --rebase` antes do push, `push --force` e `reset` proibidos na `main`, GitHub sem Pull Request.
 - **Gamificação**: XP, 5 níveis, 3 estrelas por missão, 9 conquistas, certificado imprimível.
 - **Playground** para experimentar livremente.
 
