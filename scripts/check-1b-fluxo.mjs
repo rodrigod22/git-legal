@@ -64,7 +64,7 @@ await page.waitForTimeout(500);
 await semVazamento("trilha");
 
 // missão 1 do começo ao fim
-await page.locator(".mission-row", { hasText: "Primeiro dia na RPA" }).click();
+await page.locator(".mission-row", { hasText: "Primeiro dia na Iron Systems" }).click();
 await dispensaVideo(page);
 await page.waitForTimeout(600);
 await shot("1-missao");

@@ -1,5 +1,5 @@
 // Itens 6 e 7 da Etapa 1D: o Dojo servido de uma subpasta, sem acesso à internet.
-// Bloqueia toda requisição fora de 127.0.0.1, percorre as telas, confere as fontes e o localStorage.
+// Bloqueia toda requisição fora do host do Dojo, percorre as telas, confere as fontes e o localStorage.
 // Uso: node scripts/check-1d-offline.mjs <pasta-de-saida> [url]  (padrão: http://127.0.0.1:5198/git-dojo/)
 import { chromium } from "playwright-core";
 import path from "node:path";
@@ -7,8 +7,11 @@ import { idsDasMissoes, progressoCompleto, dispensaVideo } from "./lib-missoes.m
 
 const [outDir, url = "http://127.0.0.1:5198/git-dojo/"] = process.argv.slice(2);
 const base = new URL(url);
-const browser = await chromium.launch({ channel: "chrome", headless: true });
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+// CHROME_ARGS permite, por exemplo, resolver um host sem DNS: --host-resolver-rules=MAP host ip
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: process.env.CHROME_ARGS ? process.env.CHROME_ARGS.split(" ") : [] });
+// DOJO_USUARIO e DOJO_SENHA atendem ao login do servidor publicado (auth_basic do Nginx).
+const credenciais = process.env.DOJO_USUARIO ? { httpCredentials: { username: process.env.DOJO_USUARIO, password: process.env.DOJO_SENHA ?? "" } } : {};
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, ...credenciais });
 
 const bloqueadas = [];
 const foraDaBase = [];
@@ -18,7 +21,7 @@ const errors = [];
 const ambiente = /kaspersky-labs\.com/;
 await page.route("**/*", (route) => {
   const u = new URL(route.request().url());
-  if (u.hostname !== "127.0.0.1") {
+  if (u.host !== base.host) {
     if (!ambiente.test(u.href)) bloqueadas.push(u.href);
     return route.abort("internetdisconnected");
   }

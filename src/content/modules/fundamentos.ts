@@ -12,10 +12,10 @@ export const fundamentos: Module = {
   missions: [
     {
       id: "primeiro-dia",
-      title: "Primeiro dia na RPA",
+      title: "Primeiro dia na Iron Systems",
       tagline: "Transforme uma pasta comum em um repositório Git e registre seu primeiro commit.",
       story: [
-        "Bem-vindo à **RPA Tecnologia**! Você recebeu uma pasta vazia chamada `projeto-rpa` e a primeira tarefa é simples: colocar o projeto sob controle de versão.",
+        "Bem-vindo à **Iron Systems**! Você recebeu uma pasta vazia chamada `projeto-rpa` e a primeira tarefa é simples: colocar o projeto sob controle de versão.",
         "No Git, nada acontece por acaso. Primeiro você **inicializa** o repositório, depois **cria** um arquivo, **prepara** (stage) o que vai entrar no commit e, por fim, **commita** com uma mensagem clara.",
         "Crie um `README.md` com o nome do projeto e faça seu primeiro commit.",
       ],
@@ -50,7 +50,7 @@ export const fundamentos: Module = {
       title: "Um commit, uma intenção",
       tagline: "Aprenda a separar mudanças em commits pequenos e com propósito.",
       story: [
-        "Você alterou dois arquivos: corrigiu um erro de digitação no `README.md` e criou a página `contato.php`. São duas mudanças **sem relação** — e na RPA cada commit conta uma única história.",
+        "Você alterou dois arquivos: corrigiu um erro de digitação no `README.md` e criou a página `contato.php`. São duas mudanças **sem relação** — e na Iron Systems cada commit conta uma única história.",
         "Faça **dois commits separados**: um só com `contato.php` e outro só com o `README.md`. A ordem não importa, mas a separação sim.",
         "Dica de ouro: `git add` aceita o nome de um arquivo específico. Você escolhe o que entra na bandeja.",
       ],
@@ -64,10 +64,10 @@ export const fundamentos: Module = {
       },
       setup: () =>
         sc()
-          .file("README.md", "# Portal RPA\n\nSitema interno da RPA Tecnologia.\n")
+          .file("README.md", "# Portal RPA\n\nSitema interno da Iron Systems.\n")
           .file("index.php", "<?php\necho 'Portal RPA';\n")
           .commit("primeiro commit")
-          .file("README.md", "# Portal RPA\n\nSistema interno da RPA Tecnologia.\n")
+          .file("README.md", "# Portal RPA\n\nSistema interno da Iron Systems.\n")
           .file("contato.php", "<?php\necho 'Fale conosco';\n")
           .done(),
       objectives: [
@@ -113,7 +113,7 @@ export const fundamentos: Module = {
           "`git log --oneline` lista commits de forma compacta; `git log` mostra autor, data e mensagem.",
           "`git show <sha>` exibe o que um commit mudou (o diff). Bastam os 7 primeiros caracteres do hash, e também vale uma referência como `HEAD~1`, o commit anterior ao atual.",
           "`git diff` compara pasta de trabalho × staging; `git diff --staged` compara staging × último commit.",
-          "Na RPA, commit que corrige um bug começa com `fix:`. Assim, no `git log --oneline`, dá para achar as correções de relance e saber o que entrou de novo e o que foi conserto.",
+          "Na Iron Systems, commit que corrige um bug começa com `fix:`. Assim, no `git log --oneline`, dá para achar as correções de relance e saber o que entrou de novo e o que foi conserto.",
         ],
       },
       setup: () =>

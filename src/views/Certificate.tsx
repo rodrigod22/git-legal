@@ -33,12 +33,12 @@ export function Certificate() {
         </div>
       ) : (
         <div className="certificate">
-          <div style={{ fontSize: 13, letterSpacing: "0.3em", color: "#6b7280" }}>RPA TECNOLOGIA · GIT DOJO</div>
+          <div style={{ fontSize: 13, letterSpacing: "0.3em", color: "#6b7280" }}>IRON SYSTEMS · GIT DOJO</div>
           <h1 style={{ marginTop: 10 }}>CERTIFICADO</h1>
           <p style={{ marginTop: 14, color: "#4b5563" }}>Certificamos que</p>
           <div className="name">{playerName}</div>
           <p style={{ color: "#374151", maxWidth: 620, margin: "0 auto", lineHeight: 1.6 }}>
-            concluiu o treinamento interativo <b>Git Dojo</b>, demonstrando domínio prático de controle de versão com Git: fundamentos, branches, merges, resolução de conflitos, rebase e o fluxo trunk-based adotado pela RPA Tecnologia.
+            concluiu o treinamento interativo <b>Git Dojo</b>, demonstrando domínio prático de controle de versão com Git: fundamentos, branches, merges, resolução de conflitos, rebase e o fluxo trunk-based adotado pela Iron Systems.
           </p>
           <div className="meta">
             <div>

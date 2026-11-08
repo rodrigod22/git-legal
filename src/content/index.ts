@@ -40,7 +40,7 @@ export const PLAYGROUND: Mission = {
   ],
   setup: () =>
     sc()
-      .file("README.md", "# Portal RPA\n\nIntranet da RPA Tecnologia.\n")
+      .file("README.md", "# Portal RPA\n\nIntranet da Iron Systems.\n")
       .file("index.php", "<?php\necho 'Portal RPA';\n")
       .commit("versão inicial")
       .file("config.php", "<?php\n$db_port = 3306;\n")

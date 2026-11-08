@@ -22,7 +22,7 @@ export const merge: Module = {
         diagram: "fast-forward",
         points: [
           "Acontece quando o commit da main é ancestral direto da branch. A main simplesmente 'alcança' a feature.",
-          "O histórico fica linear — ótimo para o fluxo trunk-based da RPA.",
+          "O histórico fica linear — ótimo para o fluxo trunk-based da Iron Systems.",
           "Sempre faça o merge **estando na branch que vai receber** (`git switch main` primeiro).",
         ],
       },
@@ -98,7 +98,7 @@ export const merge: Module = {
         points: [
           "Força um commit de merge mesmo quando o fast-forward seria possível.",
           "Vantagem: o grupo de commits da feature fica visível como uma 'bolha' no grafo e pode ser revertido de uma vez.",
-          "Na RPA o fluxo oficial é commit direto na `main`, com histórico linear. Branches e `--no-ff` são escolha de quem prefere trabalhar em paralelo no local; use `--no-ff` só quando a 'bolha' no histórico tiver valor.",
+          "Na Iron Systems o fluxo oficial é commit direto na `main`, com histórico linear. Branches e `--no-ff` são escolha de quem prefere trabalhar em paralelo no local; use `--no-ff` só quando a 'bolha' no histórico tiver valor.",
         ],
       },
       setup: () =>

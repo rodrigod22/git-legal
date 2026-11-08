@@ -142,7 +142,7 @@ export const conflitos: Module = {
       title: "Conflito no rebase",
       tagline: "Reescreva sua branch em cima da main — e resolva o que travar.",
       story: [
-        "Na RPA preferimos histórico **linear**. Em vez de mesclar a `main` na sua feature, você faz `git rebase main`: seus commits são reaplicados um a um em cima da main.",
+        "Na Iron Systems preferimos histórico **linear**. Em vez de mesclar a `main` na sua feature, você faz `git rebase main`: seus commits são reaplicados um a um em cima da main.",
         "A `feature/menu` tem 2 commits. O segundo mexe na mesma linha do `menu.php` que o Carlos alterou na `main`. O rebase vai parar nele. Resolva mantendo **os dois itens de menu** (Relatórios e Configurações), `git add`, e `git rebase --continue`.",
       ],
       concept: {

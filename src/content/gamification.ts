@@ -33,7 +33,7 @@ export const BADGES: Badge[] = [
   { id: "branch-master", name: "Mestre das Branches", description: "Concluiu o módulo de branches.", emoji: "🌿" },
   { id: "merge-master", name: "Mestre do Merge", description: "Concluiu o módulo de merges.", emoji: "🔀" },
   { id: "pacificador", name: "Pacificador", description: "Venceu o chefão dos conflitos.", emoji: "🕊️" },
-  { id: "trunk-hero", name: "Herói da Main", description: "Dominou o fluxo trunk-based da RPA.", emoji: "🚀" },
+  { id: "trunk-hero", name: "Herói da Main", description: "Dominou o fluxo trunk-based da Iron Systems.", emoji: "🚀" },
   { id: "resgate", name: "Equipe de Resgate", description: "Recuperou trabalho perdido com o reflog.", emoji: "🛟" },
   { id: "sem-dicas", name: "Autodidata", description: "Concluiu 5 missões sem usar dicas.", emoji: "🧠" },
   { id: "sem-erros", name: "Mão Firme", description: "Concluiu 5 missões sem nenhum comando com erro.", emoji: "🎯" },

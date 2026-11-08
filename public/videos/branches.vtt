@@ -12,7 +12,7 @@ Uma demanda que não cabe em um commit: a tela de login precisa de formulário, 
 
 3
 00:12.000 --> 00:17.000
-Enquanto isso, a main precisa continuar funcionando. Na RPA o padrão é commitar direto na main; para o que leva vários commits, quem preferir usa uma branch local curta.
+Enquanto isso, a main precisa continuar funcionando. Na Iron Systems o padrão é commitar direto na main; para o que leva vários commits, quem preferir usa uma branch local curta.
 
 4
 00:17.000 --> 00:26.000

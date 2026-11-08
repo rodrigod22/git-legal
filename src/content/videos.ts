@@ -33,7 +33,7 @@ function video(moduleId: string, sizeMb: number, lista: [number, number, string]
 export const VIDEOS: ModuleVideo[] = [
   video("fundamentos", 3, [
     [0, 7, "Módulo 1 · Fundamentos. As três áreas do Git: de onde vem cada comando."],
-    [7, 13, "Primeiro dia na RPA. A pasta projeto-rpa tem index.php e config.php, mas nenhum histórico, nenhuma memória."],
+    [7, 13, "Primeiro dia na Iron Systems. A pasta projeto-rpa tem index.php e config.php, mas nenhum histórico, nenhuma memória."],
     [13, 17, "Quem mudou a porta do banco ontem? Qual versão funcionava na semana passada? Ninguém sabe. Sua primeira tarefa: colocar o projeto sob controle de versão."],
     [17, 26, "git init. Initialized empty Git repository. A pasta virou um repositório: cada mudança agora pode virar história."],
     [26, 33, "As três áreas: working dir, staging e repositório. echo cria o README.md no working dir."],
@@ -41,12 +41,12 @@ export const VIDEOS: ModuleVideo[] = [
     [38, 42, "git commit -m \"primeiro commit\" grava a bandeja como um commit no repositório; a branch main aponta para ele."],
     [42, 47, "Na dúvida, git status: ele diz em que área cada arquivo está. Verde, na bandeja; vermelho, ainda só no disco."],
     [47, 52, "Um commit, uma intenção: duas mudanças sem relação viram dois commits. git add aceita o nome do arquivo."],
-    [52, 60, "Repositório criado, primeiro commit feito. Tudo no Git passa por três áreas. Agora é com você. Missão 1: Primeiro dia na RPA."],
+    [52, 60, "Repositório criado, primeiro commit feito. Tudo no Git passa por três áreas. Agora é com você. Missão 1: Primeiro dia na Iron Systems."],
   ]),
   video("branches", 3, [
     [0, 7, "Módulo 2 · Branches. Linhas paralelas de trabalho, sem quebrar a main."],
     [7, 12, "Uma demanda que não cabe em um commit: a tela de login precisa de formulário, validação da senha e sessão."],
-    [12, 17, "Enquanto isso, a main precisa continuar funcionando. Na RPA o padrão é commitar direto na main; para o que leva vários commits, quem preferir usa uma branch local curta."],
+    [12, 17, "Enquanto isso, a main precisa continuar funcionando. Na Iron Systems o padrão é commitar direto na main; para o que leva vários commits, quem preferir usa uma branch local curta."],
     [17, 26, "git switch -c feature/login. Switched to a new branch. Uma branch é só um ponteiro para um commit: criar uma é instantâneo e barato."],
     [26, 33, "Branch é um ponteiro. HEAD diz onde você está. git switch -c cria a etiqueta feature/login no mesmo commit da main e move o HEAD para ela."],
     [33, 42, "git commit: só a branch onde o HEAD está avança. A main continua no mesmo commit, intacta."],
@@ -73,7 +73,7 @@ export const VIDEOS: ModuleVideo[] = [
     [51, 60, "git add README.md e git commit fecham o merge. Conflito resolvido, árvore limpa. Conflito não é erro. Agora é com você."],
   ]),
   video("trunk", 3, [
-    [0, 7, "Módulo 5 · Trunk-based. O fluxo oficial da RPA: commits pequenos, direto na main, várias vezes por dia."],
+    [0, 7, "Módulo 5 · Trunk-based. O fluxo oficial da Iron Systems: commits pequenos, direto na main, várias vezes por dia."],
     [7, 13, "Alguém chegou antes: você commita a página sobre e a Ana faz push de \"ajusta título do index\" antes de você."],
     [13, 18, "git push: rejected, fetch first. O remoto só aceita push quando o que ele tem é ancestral do seu commit."],
     [18, 28, "git pull --rebase reaplica seus commits por cima dos da Ana; git push é aceito. Histórico linear, sem commit de merge."],

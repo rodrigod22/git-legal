@@ -12,6 +12,6 @@ Este é o projeto HyperFrames dos seis vídeos de abertura do Git Dojo. Leia ant
 - Traço animado por `stroke-dasharray` não aparece no render; use o `desenha()` de `assets/dojo.js`, que anima um `clipPath`.
 - Cada `<audio>` precisa de `id`, `class="clip"`, `data-start`, `data-duration`, `data-volume` e `data-hf-media-start-basis="local"`; música em `data-track-index="1"`, efeitos em `2`.
 - O `#root` de cada composição leva a regra de posição e tamanho no `<style>` da própria composição; o lint recusa template literal em `querySelector`.
-- Os textos dos vídeos respeitam as regras do fluxo da RPA validadas na Etapa 1C (ver a seção "Regras do fluxo da RPA" em `src/views/Cheatsheet.tsx`).
+- Os textos dos vídeos respeitam as regras do fluxo da Iron Systems validadas na Etapa 1C (ver a seção "Regras do fluxo da Iron Systems" em `src/views/Cheatsheet.tsx`).
 - Se o texto na tela mudar, atualize as deixas em `src/content/videos.ts` e rode `npm run legendas` na raiz do Dojo; o teste `videos.test.ts` confere que legenda e deixas batem.
 - Sem voz nesta fase. Não crie conta nem use chave de API (HeyGen inclusive): voz, avatar, render na nuvem e `publish` com conta são pagos.

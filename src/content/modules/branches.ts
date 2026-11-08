@@ -15,7 +15,7 @@ export const branches: Module = {
       title: "Sua primeira branch",
       tagline: "Isole uma funcionalidade nova sem tocar na main.",
       story: [
-        "Chegou a demanda: **tela de login**. Na RPA o padrão é commitar direto na `main`, em commits pequenos, como você vai praticar no módulo Trunk-based. Só que a tela precisa de vários commits até funcionar, e a `main` não pode ficar quebrada nesse meio-tempo. Para esses casos, quem preferir pode trabalhar numa **branch local curta**: ela vive poucas horas, fica só na sua máquina e volta para a `main` no mesmo dia. Não é obrigatório, mas é bom saber usar.",
+        "Chegou a demanda: **tela de login**. Na Iron Systems o padrão é commitar direto na `main`, em commits pequenos, como você vai praticar no módulo Trunk-based. Só que a tela precisa de vários commits até funcionar, e a `main` não pode ficar quebrada nesse meio-tempo. Para esses casos, quem preferir pode trabalhar numa **branch local curta**: ela vive poucas horas, fica só na sua máquina e volta para a `main` no mesmo dia. Não é obrigatório, mas é bom saber usar.",
         "Crie a branch `feature/login`, troque para ela, crie `login.php` e commite. Observe no grafo ao lado o ponteiro `HEAD` se movendo.",
       ],
       concept: {

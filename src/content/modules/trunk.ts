@@ -12,7 +12,7 @@ const baseRemote = () =>
 
 export const trunk: Module = {
   id: "trunk",
-  title: "Trunk-based na RPA",
+  title: "Trunk-based na Iron Systems",
   subtitle: "O fluxo oficial do time",
   description: "Commits pequenos na main, pull --rebase antes do push, branches curtíssimas e revert em vez de reset.",
   color: "#f97316",
@@ -23,7 +23,7 @@ export const trunk: Module = {
       title: "Push rejeitado",
       tagline: "Alguém chegou antes. Integre e envie de novo.",
       story: [
-        "Na RPA trabalhamos **trunk-based**: todo mundo commita direto na `main`, em commits pequenos, várias vezes por dia. O segredo para isso funcionar é um ritual: **antes de `push`, `pull --rebase`**.",
+        "Na Iron Systems trabalhamos **trunk-based**: todo mundo commita direto na `main`, em commits pequenos, várias vezes por dia. O segredo para isso funcionar é um ritual: **antes de `push`, `pull --rebase`**.",
         "Faça um commit adicionando `sobre.php` e tente `git push`. A **Ana** vai ter enviado um commit antes de você e o remoto vai rejeitar. Resolva com `git pull --rebase` e envie de novo.",
       ],
       concept: {
@@ -88,7 +88,7 @@ export const trunk: Module = {
         {
           id: "carlos-1",
           when: (ctx) => ctx.events.filter((e) => e === "push").length >= 2,
-          apply: (repo) => G.remoteCommit(repo, "main", "carlos", "corrige README", (t) => ({ ...t, "README.md": "# Portal RPA\n\nIntranet da RPA Tecnologia.\n" })),
+          apply: (repo) => G.remoteCommit(repo, "main", "carlos", "corrige README", (t) => ({ ...t, "README.md": "# Portal RPA\n\nIntranet da Iron Systems.\n" })),
           message: "Carlos enviou “corrige README” para origin/main",
           actor: "carlos",
         },
@@ -194,7 +194,7 @@ export const trunk: Module = {
         points: [
           "`git reset` **move** a branch para trás (apaga commits do histórico). Só para commits que ainda não saíram da sua máquina.",
           "`git revert` **adiciona** um commit inverso. Seguro para branches compartilhadas.",
-          "Na RPA, `push --force` e `reset` na `main` são proibidos. O motivo: a `main` está na máquina de todo mundo. Se você reescreve o histórico do remoto, quem já tinha baixado os commits apagados fica com um repositório divergente, o próximo `pull` vira conflito e trabalho pode se perder. O `revert` corrige sem apagar nada.",
+          "Na Iron Systems, `push --force` e `reset` na `main` são proibidos. O motivo: a `main` está na máquina de todo mundo. Se você reescreve o histórico do remoto, quem já tinha baixado os commits apagados fica com um repositório divergente, o próximo `pull` vira conflito e trabalho pode se perder. O `revert` corrige sem apagar nada.",
           "Se alguém sugerir `push --force` na `main`, chame o líder técnico antes.",
         ],
       },

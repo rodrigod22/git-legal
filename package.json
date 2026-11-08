@@ -2,7 +2,7 @@
   "name": "git-dojo",
   "private": true,
   "version": "1.0.0",
-  "description": "Git Dojo — treinamento interativo e gamificado de Git (branches, merges e conflitos) da RPA Tecnologia",
+  "description": "Git Dojo — treinamento interativo e gamificado de Git (branches, merges e conflitos) da Iron Systems",
   "type": "module",
   "scripts": {
     "dev": "vite",

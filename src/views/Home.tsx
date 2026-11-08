@@ -33,13 +33,13 @@ export function Home() {
     <div className="home">
       <motion.div className="hero" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <span className="pill" style={{ marginBottom: 16 }}>
-          <span aria-hidden="true">🥋 </span>Treinamento oficial de Git · RPA Tecnologia
+          <span aria-hidden="true">🥋 </span>Treinamento oficial de Git · Iron Systems
         </span>
         <h1>
           Aprenda Git <span className="grad">fazendo</span>, não lendo.
         </h1>
         <p className="lead">
-          Um terminal simulado no navegador, um grafo que reage a cada comando e {ALL_MISSIONS.length} missões sobre o que importa no dia a dia: <b>branches, merges e conflitos</b> — no fluxo que a RPA usa.
+          Um terminal simulado no navegador, um grafo que reage a cada comando e {ALL_MISSIONS.length} missões sobre o que importa no dia a dia: <b>branches, merges e conflitos</b> — no fluxo que a Iron Systems usa.
         </p>
         <div className="cta">
           <input

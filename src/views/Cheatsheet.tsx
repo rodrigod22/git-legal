@@ -1,6 +1,6 @@
 const SECTIONS: { title: string; rows: [string, string][] }[] = [
   {
-    title: "Regras do fluxo da RPA",
+    title: "Regras do fluxo da Iron Systems",
     rows: [
       ["Onde commitar", "direto na main, em commits pequenos, várias vezes por dia"],
       ["Branch local", "opcional: quem preferir trabalha numa branch curta e integra no mesmo dia"],
@@ -57,7 +57,7 @@ const SECTIONS: { title: string; rows: [string, string][] }[] = [
     ],
   },
   {
-    title: "Remoto (trunk-based RPA)",
+    title: "Remoto (trunk-based Iron Systems)",
     rows: [
       ["git fetch", "baixa o que há no origin, sem mexer nos seus arquivos"],
       ["git pull --rebase", "fetch + reaplica seus commits por cima"],

@@ -12,7 +12,7 @@ export function Topbar() {
         <span className="brand-logo" aria-hidden="true">
           <GitBranch size={18} />
         </span>
-        Git Dojo <small>RPA Tecnologia</small>
+        Git Dojo <small>Iron Systems</small>
         <span className="sr-only">, início</span>
       </button>
       <span className="grow" />

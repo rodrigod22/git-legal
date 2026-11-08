@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Git Dojo — hook post-receive do repositório bare /home/deployer/repos/gitdojo.git na VPS Contabo.
+# Arquivo de origem: deploy/post-receive no repositório. A cada push na master:
+#   1. faz checkout do código em /home/deployer/build/gitdojo (fora da raiz do site);
+#   2. instala as dependências e roda `npm run build` (tsc + vite build);
+#   3. sincroniza dist/ com /var/www/gitdojo/public, apagando o que saiu do build;
+#   4. grava o commit publicado em /versao.txt, para conferir pelo navegador.
+# Roda como deployer. Não precisa de sudo: /var/www/gitdojo pertence a deployer:www-data.
+set -euo pipefail
+
+BRANCH="master"
+REPO="/home/deployer/repos/gitdojo.git"
+FONTE="/home/deployer/build/gitdojo"
+PUBLICO="/var/www/gitdojo/public"
+
+while read -r oldrev newrev ref; do
+  if [[ "${ref}" != "refs/heads/${BRANCH}" ]]; then
+    echo "Ignorando push em ${ref} (só '${BRANCH}' publica)."
+    continue
+  fi
+  echo ""
+  echo "==> Push recebido em '${BRANCH}' (${newrev:0:7}). Publicando o Git Dojo..."
+  mkdir -p "${FONTE}"
+  git --work-tree="${FONTE}" --git-dir="${REPO}" checkout -f "${BRANCH}"
+  cd "${FONTE}"
+
+  echo "==> npm ci"
+  npm ci --no-audit --no-fund --loglevel=error
+
+  echo "==> npm run build"
+  npm run build
+
+  echo "==> Sincronizando dist/ com ${PUBLICO}"
+  mkdir -p "${PUBLICO}"
+  rsync -a --delete --chmod=D755,F644 dist/ "${PUBLICO}/"
+  echo "${newrev}" > "${PUBLICO}/versao.txt"
+
+  echo "==> Publicado: $(du -sh "${PUBLICO}" | cut -f1) em ${PUBLICO} (commit ${newrev:0:7})."
+done
