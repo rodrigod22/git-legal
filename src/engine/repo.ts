@@ -623,6 +623,14 @@ export interface RebaseResult {
   conflicts: string[];
   /** explicação de um resultado blocked */
   message?: string;
+  /** commits não reaplicados, como no Git real: já estavam na base, ou ficaram vazios ao serem aplicados */
+  skipped?: SkippedCommit[];
+}
+
+export interface SkippedCommit {
+  sha: Sha;
+  message: string;
+  reason: "na-base" | "vazio";
 }
 
 function applyCommitOnto(r: Repo, c: Commit, ontoTree: Tree): { tree: Tree; conflicts: string[] } {
@@ -630,8 +638,15 @@ function applyCommitOnto(r: Repo, c: Commit, ontoTree: Tree): { tree: Tree; conf
   return mergeTrees(parentTree, ontoTree, c.tree, { ours: "HEAD", theirs: `${short(c.sha)} (${c.message})` });
 }
 
-function continueRebaseLoop(r: Repo): RebaseResult {
+/** O que o commit mudou, com conteúdo: dois commits com a mesma assinatura trazem a mesma mudança, como o patch-id do Git. */
+function patchSignature(r: Repo, c: Commit): string {
+  const parent = c.parents[0] ? r.commits[c.parents[0]].tree : {};
+  return JSON.stringify(treeDiff(parent, c.tree).map((f) => [f.path, parent[f.path] ?? null, c.tree[f.path] ?? null]));
+}
+
+function continueRebaseLoop(r: Repo, skipped: SkippedCommit[] = []): RebaseResult {
   const rb = r.rebase!;
+  let applied = 0;
   while (rb.todo.length) {
     const sha = rb.todo[0];
     const c = r.commits[sha];
@@ -641,13 +656,19 @@ function continueRebaseLoop(r: Repo): RebaseResult {
     if (collisions.length) {
       r.head = { type: "detached", sha: rb.head };
       const message = `${collisionMessage(collisions, "rebase")}\nO rebase parou antes do commit ${short(sha)} (${c.message}).\ndica: depois disso, 'git rebase --continue' tenta de novo. Para desistir: 'git rebase --abort'.`;
-      return { repo: r, kind: "blocked", applied: 0, conflicts: [], message };
+      return { repo: r, kind: "blocked", applied, conflicts: [], message, skipped };
     }
     replaceTracked(r, tree, conflicts);
     if (conflicts.length) {
       rb.current = sha;
       r.head = { type: "detached", sha: rb.head };
-      return { repo: r, kind: "conflict", applied: 0, conflicts };
+      return { repo: r, kind: "conflict", applied, conflicts, skipped };
+    }
+    if (!treeDiff(ontoTree, tree).length) {
+      // a base já tem essa mudança: o Git descarta o commit em vez de criar um vazio
+      skipped.push({ sha, message: c.message, reason: "vazio" });
+      rb.todo.shift();
+      continue;
     }
     const nc = makeCommit(r, [rb.head], c.message, tree, c.author);
     // evita colisão com commit idêntico já existente
@@ -655,6 +676,7 @@ function continueRebaseLoop(r: Repo): RebaseResult {
     r.clock = nc.timestamp;
     rb.head = nc.sha;
     rb.todo.shift();
+    applied++;
   }
   // terminou
   if (rb.branch) {
@@ -665,7 +687,7 @@ function continueRebaseLoop(r: Repo): RebaseResult {
   }
   r.rebase = null;
   pushReflog(r, "rebase: finished");
-  return { repo: r, kind: "done", applied: 0, conflicts: [] };
+  return { repo: r, kind: "done", applied, conflicts: [], skipped };
 }
 
 export function rebase(repo: Repo, upstreamRef: string): RebaseResult {
@@ -687,13 +709,16 @@ export function rebase(repo: Repo, upstreamRef: string): RebaseResult {
     else r.head = { type: "detached", sha: upstream };
     return { repo: r, kind: "fast-forward", applied: 0, conflicts: [] };
   }
-  const todo = commitsBetween(r, upstream, head)
-    .filter((c) => c.parents.length <= 1) // merges são descartados no rebase simples, como no git
-    .map((c) => c.sha);
+  // merges são descartados no rebase simples, como no git
+  const candidates = commitsBetween(r, upstream, head).filter((c) => c.parents.length <= 1);
+  // commit com a mesma mudança de um commit que só existe na base é pulado, como o Git faz pelo patch-id
+  const naBase = new Set(commitsBetween(r, head, upstream).filter((c) => c.parents.length <= 1).map((c) => patchSignature(r, c)));
+  const skipped: SkippedCommit[] = candidates.filter((c) => naBase.has(patchSignature(r, c))).map((c) => ({ sha: c.sha, message: c.message, reason: "na-base" }));
+  const todo = candidates.filter((c) => !skipped.some((s) => s.sha === c.sha)).map((c) => c.sha);
   r.rebase = { branch: currentBranch(r), originalTip: head, onto: upstream, todo, current: null, head: upstream };
   replaceTracked(r, r.commits[upstream].tree);
-  const res = continueRebaseLoop(r);
-  if (res.kind === "done") return { ...res, kind: "rebased", applied: todo.length };
+  const res = continueRebaseLoop(r, skipped);
+  if (res.kind === "done") return { ...res, kind: "rebased" };
   return res;
 }
 
@@ -879,6 +904,8 @@ export interface PullResult {
   conflicts: string[];
   /** explicação de um resultado blocked */
   message?: string;
+  /** no --rebase: commits locais não reaplicados, porque o remoto já tinha a mudança */
+  skipped?: SkippedCommit[];
 }
 
 export function pull(repo: Repo, opts: { rebase?: boolean } = {}): PullResult {
@@ -892,10 +919,10 @@ export function pull(repo: Repo, opts: { rebase?: boolean } = {}): PullResult {
   if (opts.rebase) {
     const res = rebase(r, ref);
     if (res.kind === "blocked") return { repo: res.repo, kind: "blocked", conflicts: [], message: res.message };
-    if (res.kind === "conflict") return { repo: res.repo, kind: "conflict", conflicts: res.conflicts };
+    if (res.kind === "conflict") return { repo: res.repo, kind: "conflict", conflicts: res.conflicts, skipped: res.skipped };
     if (res.kind === "up-to-date") return { repo: res.repo, kind: "up-to-date", conflicts: [] };
     if (res.kind === "fast-forward") return { repo: res.repo, kind: "fast-forward", conflicts: [] };
-    return { repo: res.repo, kind: "rebased", conflicts: [] };
+    return { repo: res.repo, kind: "rebased", conflicts: [], skipped: res.skipped };
   }
   const res = merge(r, ref, { message: `Merge branch '${branch}' of origin` });
   return { repo: res.repo, kind: res.kind, conflicts: res.conflicts };

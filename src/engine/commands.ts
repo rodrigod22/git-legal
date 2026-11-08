@@ -446,11 +446,13 @@ function runGit(repo: Repo, args: string[]): CommandResult {
       if (res.kind === "blocked") return failure(res.repo, res.message!);
       if (res.kind === "up-to-date") return { repo: res.repo, lines: ["Current branch is up to date. <d>(nada a reaplicar)</d>"], ok: true };
       if (res.kind === "fast-forward") return { repo: res.repo, lines: ["<g>Fast-forward</g> <d>— sua branch apenas avançou para a base.</d>"], ok: true, event: "fast-forward" };
+      const avisos = skippedLines(res.skipped);
       if (res.kind === "conflict") {
         const cur = res.repo.rebase!.current!;
         return {
           repo: res.repo,
           lines: [
+            ...avisos,
             ...res.conflicts.map((c) => `<r>CONFLICT (content): Merge conflict in ${esc(c)}</r>`),
             `<y>error: could not apply ${G.short(cur)}... ${esc(res.repo.commits[cur].message)}</y>`,
             "<d>Resolva o conflito, 'git add <arquivo>' e então 'git rebase --continue' (ou 'git rebase --abort').</d>",
@@ -459,7 +461,7 @@ function runGit(repo: Repo, args: string[]): CommandResult {
           event: "conflict",
         };
       }
-      return { repo: res.repo, lines: [`<g>Successfully rebased and updated ${esc(G.currentBranch(res.repo) ?? "HEAD")}.</g>`], ok: true, event: "rebase" };
+      return { repo: res.repo, lines: [...avisos, `<g>Successfully rebased and updated ${esc(G.currentBranch(res.repo) ?? "HEAD")}.</g>`], ok: true, event: "rebase" };
     }
     case "reset": {
       const { f, pos, paths: afterDashes } = flagsAndPaths(rest);
@@ -575,11 +577,11 @@ function runGit(repo: Repo, args: string[]): CommandResult {
       if (res.kind === "blocked") return failure(res.repo, res.message!);
       if (res.kind === "up-to-date") return { repo: res.repo, lines: ["Already up to date."], ok: true, event: "pull" };
       if (res.kind === "fast-forward") return { repo: res.repo, lines: ["From origin", "<g>Fast-forward</g> <d>— sua branch avançou para o estado do remoto.</d>"], ok: true, event: "pull" };
-      if (res.kind === "rebased") return { repo: res.repo, lines: ["From origin", `<g>Successfully rebased and updated ${esc(G.currentBranch(res.repo)!)}.</g>`], ok: true, event: "rebase" };
+      if (res.kind === "rebased") return { repo: res.repo, lines: ["From origin", ...skippedLines(res.skipped), `<g>Successfully rebased and updated ${esc(G.currentBranch(res.repo)!)}.</g>`], ok: true, event: "rebase" };
       if (res.kind === "conflict") {
         return {
           repo: res.repo,
-          lines: ["From origin", ...res.conflicts.map((c) => `<r>CONFLICT (content): Merge conflict in ${esc(c)}</r>`), "<y>Resolva o conflito antes de continuar.</y>"],
+          lines: ["From origin", ...skippedLines(res.skipped), ...res.conflicts.map((c) => `<r>CONFLICT (content): Merge conflict in ${esc(c)}</r>`), "<y>Resolva o conflito antes de continuar.</y>"],
           ok: true,
           event: "conflict",
         };
@@ -607,6 +609,15 @@ function runGit(repo: Repo, args: string[]): CommandResult {
     default:
       throw new GitError(`git: '${sub}' não é um comando git (ou não é suportado no Dojo). Digite 'git help'.`);
   }
+}
+
+/** Avisos do rebase sobre commits não reaplicados, como o "skipped previously applied commit" do Git. */
+function skippedLines(skipped: G.SkippedCommit[] = []): string[] {
+  return skipped.map((s) =>
+    s.reason === "na-base"
+      ? `<y>aviso: o commit ${G.short(s.sha)} (${esc(s.message)}) foi pulado: a base já tem essa mesma mudança.</y>`
+      : `<y>aviso: o commit ${G.short(s.sha)} (${esc(s.message)}) foi descartado: ficou vazio, porque a base já tem essa mudança.</y>`,
+  );
 }
 
 function statusLines(repo: Repo): string[] {

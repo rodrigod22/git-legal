@@ -1689,3 +1689,90 @@ describe("--abort com arquivo adicionado e editado depois", () => {
     });
   });
 });
+
+describe("git rebase com commit que já está na base", () => {
+  const dois = () => run(G.createRepo({ user: "voce" }), "git init", "echo a > a.txt", "echo x > x.txt", "git add .", 'git commit -m "um"', "echo 2 > b.txt", "git add .", 'git commit -m "dois"').repo;
+  const texto = (lines: string[]) => lines.join("\n").replace(/<\/?\w>/g, "");
+  const mensagens = (r: Repo) => G.log(r).map((e) => e.commit.message);
+  const vazios = (r: Repo) => Object.values(r.commits).filter((c) => c.parents.length === 1 && JSON.stringify(c.tree) === JSON.stringify(r.commits[c.parents[0]].tree));
+  // f e main criam i.txt com o mesmo conteúdo, em commits diferentes; estamos em f
+  const igual = () => run(dois(), "git switch -c f", "echo igual > i.txt", "git add .", 'git commit -m "igual-f"', "git switch main", "echo igual > i.txt", "git add .", 'git commit -m "igual-m"', "git switch f").repo;
+
+  it("descarta o commit em vez de criar um commit vazio, e avisa", () => {
+    const res = run(igual(), "git rebase main");
+    expect(res.ok).toBe(true);
+    expect(res.event).toBe("rebase");
+    expect(mensagens(res.repo)).toEqual(["igual-m", "dois", "um"]);
+    expect(res.repo.branches.f).toBe(res.repo.branches.main);
+    expect(vazios(res.repo)).toEqual([]);
+    expect(texto(res.lines)).toContain("igual-f");
+    expect(res.repo.rebase).toBeNull();
+    expect(G.isCleanRepo(res.repo)).toBe(true);
+  });
+  it("reaplica só o commit que não está na base", () => {
+    const r = run(dois(), "git switch -c f", "echo igual > i.txt", "git add .", 'git commit -m "igual-f"', "echo p > p.txt", "git add .", 'git commit -m "P"', "git switch main", "echo igual > i.txt", "git add .", 'git commit -m "igual-m"', "git switch f").repo;
+    const res = run(r, "git rebase main");
+    expect(mensagens(res.repo)).toEqual(["P", "igual-m", "dois", "um"]);
+    expect(vazios(res.repo)).toEqual([]);
+  });
+  it("com todos os commits já na base, a branch anda para a base", () => {
+    const r = run(igual(), "git switch main", "echo m > m.txt", "git add .", 'git commit -m "m"', "git switch f").repo;
+    const res = run(r, "git rebase main");
+    expect(res.ok).toBe(true);
+    expect(res.repo.branches.f).toBe(res.repo.branches.main);
+    expect(mensagens(res.repo)).toEqual(["m", "igual-m", "dois", "um"]);
+    expect(G.status(res.repo).branch).toBe("f");
+  });
+  it("descarta o commit que fica vazio ao ser aplicado, mesmo sem ser idêntico a um da base", () => {
+    const r = run(dois(), "git switch -c f", "echo igual > i.txt", "git add .", 'git commit -m "igual-f"', "git switch main", "echo quase > i.txt", "git add .", 'git commit -m "quase"', "echo igual > i.txt", "git add .", 'git commit -m "igual-m"', "git switch f").repo;
+    const res = run(r, "git rebase main");
+    expect(res.ok).toBe(true);
+    expect(mensagens(res.repo)).toEqual(["igual-m", "quase", "dois", "um"]);
+    expect(vazios(res.repo)).toEqual([]);
+    expect(texto(res.lines)).toContain("igual-f");
+  });
+  it("pula o commit e ainda para no conflito do seguinte", () => {
+    const r = run(dois(), "git switch -c f", "echo igual > i.txt", "git add .", 'git commit -m "igual-f"', "echo F > x.txt", "git add .", 'git commit -m "F"', "git switch main", "echo igual > i.txt", "git add .", 'git commit -m "igual-m"', "echo M > x.txt", "git add .", 'git commit -m "M"', "git switch f").repo;
+    const res = run(r, "git rebase main");
+    expect(res.event).toBe("conflict");
+    expect(G.status(res.repo).conflicts).toEqual(["x.txt"]);
+    const done = run(res.repo, "echo FM > x.txt", "git add x.txt", "git rebase --continue");
+    expect(mensagens(done.repo)).toEqual(["F", "M", "igual-m", "dois", "um"]);
+    expect(vazios(done.repo)).toEqual([]);
+  });
+  it("conflito resolvido igual à base não gera commit", () => {
+    const r = run(dois(), "git switch -c f", "echo F > x.txt", "git add .", 'git commit -m "F"', "echo p > p.txt", "git add .", 'git commit -m "P"', "git switch main", "echo M > x.txt", "git add .", 'git commit -m "M"', "git switch f").repo;
+    const res = run(r, "git rebase main", "echo M > x.txt", "git add x.txt", "git rebase --continue");
+    expect(res.ok).toBe(true);
+    expect(mensagens(res.repo)).toEqual(["P", "M", "dois", "um"]);
+    expect(vazios(res.repo)).toEqual([]);
+  });
+
+  describe("git pull --rebase", () => {
+    // main tem o commit local; o colega já enviou a mesma mudança, com outro commit
+    const jaEnviado = () => {
+      let r = G.addRemote(dois());
+      r = G.push(r, { branch: "main" }).repo;
+      r = run(r, "echo l > l.txt", "git add .", 'git commit -m "local"').repo;
+      return G.remoteCommit(r, "main", "ana", "local", (t) => ({ ...t, "l.txt": "l\n" }));
+    };
+    it("descarta o commit local que o colega já enviou", () => {
+      const r = G.remoteCommit(jaEnviado(), "main", "ana", "colega", (t) => ({ ...t, "n.txt": "n\n" }));
+      const res = run(r, "git pull --rebase");
+      expect(res.ok).toBe(true);
+      expect(mensagens(res.repo)).toEqual(["colega", "local", "dois", "um"]);
+      expect(vazios(res.repo)).toEqual([]);
+      expect(res.repo.branches.main).toBe(res.repo.remoteRefs["origin/main"]);
+      expect(G.status(res.repo).ahead).toBe(0);
+      expect(texto(res.lines)).toContain("local");
+    });
+    it("só o commit já enviado: a branch fica igual ao remoto", () => {
+      const res = run(jaEnviado(), "git pull --rebase");
+      expect(res.ok).toBe(true);
+      expect(mensagens(res.repo)).toEqual(["local", "dois", "um"]);
+      expect(res.repo.branches.main).toBe(res.repo.remoteRefs["origin/main"]);
+      expect(G.status(res.repo).ahead).toBe(0);
+      expect(G.status(res.repo).behind).toBe(0);
+    });
+  });
+});
