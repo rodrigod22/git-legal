@@ -699,6 +699,13 @@ export function rebaseContinue(repo: Repo): RebaseResult {
   const r = clone(repo);
   const rb = r.rebase!;
   if (rb.current) {
+    // como no Git real, só segue com tudo adicionado: edição sem add seria descartada pelo próximo commit
+    const pending = status(r).unstaged.map((f) => f.path);
+    if (pending.length) {
+      throw new GitError(
+        `erro: ainda há alterações sem 'git add':\n${pending.map((p) => `\t${p}`).join("\n")}\ndica: o rebase só continua com tudo adicionado. Use 'git add <arquivo>' para levar a alteração, ou 'git restore <arquivo>' para descartá-la.`,
+      );
+    }
     const cur = r.commits[rb.current];
     const stagedChanges = treeDiff(r.commits[rb.head].tree, r.index);
     if (stagedChanges.length) {

@@ -1561,3 +1561,67 @@ describe("git switch, git checkout e git merge com trabalho local que colide", (
     });
   });
 });
+
+describe("git rebase --continue com edição sem add", () => {
+  const dois = () => run(G.createRepo({ user: "voce" }), "git init", "echo a > a.txt", "echo x > x.txt", "git add .", 'git commit -m "um"', "echo 2 > b.txt", "git add .", 'git commit -m "dois"').repo;
+  const texto = (lines: string[]) => lines.join("\n");
+  const mensagens = (r: Repo) => G.log(r).map((e) => e.commit.message);
+  // f e main mudam x.txt; o segundo commit de f cria p.txt. O rebase já parou no conflito de x.txt
+  const parado = () =>
+    run(dois(), "git switch -c f", "echo F > x.txt", "git add .", 'git commit -m "F"', "echo p > p.txt", "git add .", 'git commit -m "P"', "git switch main", "echo M > x.txt", "git add .", 'git commit -m "M"', "git switch f", "git rebase main").repo;
+  // só um commit em f: o conflito é no último commit a aplicar
+  const paradoUltimo = () =>
+    run(dois(), "git switch -c f", "echo F > x.txt", "git add .", 'git commit -m "F"', "git switch main", "echo M > x.txt", "git add .", 'git commit -m "M"', "git switch f", "git rebase main").repo;
+
+  it("recusa a edição sem add em outro arquivo rastreado e nada muda", () => {
+    const antes = run(parado(), "echo FM > x.txt", "git add x.txt", "echo sujo >> a.txt").repo;
+    const res = run(antes, "git rebase --continue");
+    expect(res.ok).toBe(false);
+    expect(texto(res.lines)).toContain("a.txt");
+    expect(texto(res.lines)).toContain("git add");
+    expect(res.repo).toEqual(antes);
+    expect(res.repo.workdir["a.txt"]).toBe("a\nsujo\n");
+  });
+  it("recusa também quando é o último commit a aplicar", () => {
+    const antes = run(paradoUltimo(), "echo FM > x.txt", "git add x.txt", "echo sujo >> a.txt").repo;
+    const res = run(antes, "git rebase --continue");
+    expect(res.ok).toBe(false);
+    expect(res.repo).toEqual(antes);
+    expect(res.repo.rebase).not.toBeNull();
+  });
+  it("recusa a edição feita no arquivo resolvido depois do git add", () => {
+    const antes = run(parado(), "echo FM > x.txt", "git add x.txt", "echo FM2 > x.txt").repo;
+    const res = run(antes, "git rebase --continue");
+    expect(res.ok).toBe(false);
+    expect(texto(res.lines)).toContain("x.txt");
+    expect(res.repo).toEqual(antes);
+  });
+  it("depois do git add, o --continue segue", () => {
+    const res = run(parado(), "echo FM > x.txt", "git add x.txt", "echo sujo >> a.txt", "git add a.txt", "git rebase --continue");
+    expect(res.ok).toBe(true);
+    expect(res.repo.rebase).toBeNull();
+    expect(mensagens(res.repo)).toEqual(["P", "F", "M", "dois", "um"]);
+    expect(res.repo.workdir["a.txt"]).toBe("a\nsujo\n");
+  });
+  it("arquivo novo em staging entra no commit reaplicado", () => {
+    const res = run(parado(), "echo FM > x.txt", "git add x.txt", "echo n > n.txt", "git add n.txt", "git rebase --continue");
+    expect(res.ok).toBe(true);
+    expect(res.repo.rebase).toBeNull();
+    const f = G.log(res.repo).find((e) => e.commit.message === "F")!.commit;
+    expect(f.tree["n.txt"]).toBe("n\n");
+    expect(G.isCleanRepo(res.repo)).toBe(true);
+  });
+  it("arquivo não rastreado solto não atrapalha", () => {
+    const res = run(parado(), "echo FM > x.txt", "git add x.txt", "echo u > u.txt", "git rebase --continue");
+    expect(res.ok).toBe(true);
+    expect(res.repo.rebase).toBeNull();
+    expect(G.status(res.repo).untracked).toEqual(["u.txt"]);
+  });
+  it("o --abort continua descartando a edição, como no Git real", () => {
+    const res = run(parado(), "echo FM > x.txt", "git add x.txt", "echo sujo >> a.txt", "git rebase --abort");
+    expect(res.ok).toBe(true);
+    expect(res.repo.rebase).toBeNull();
+    expect(res.repo.workdir["a.txt"]).toBe("a\n");
+    expect(res.repo.workdir["x.txt"]).toBe("F\n");
+  });
+});
