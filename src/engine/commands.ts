@@ -593,7 +593,7 @@ function runGit(repo: Repo, args: string[]): CommandResult {
       const { pos } = flags(rest);
       if (pos[0]) return refuse(repo, `'git remote ${pos[0]}': o remoto do treinamento é fixo`);
       if (!repo.remote) return { repo, lines: ["<d>(nenhum remoto configurado)</d>"], ok: true };
-      return { repo, lines: [`origin\thttps://git.rpa.com.br/rpa/projeto-rpa.git (fetch)`, `origin\thttps://git.rpa.com.br/rpa/projeto-rpa.git (push)`], ok: true };
+      return { repo, lines: [`origin\thttps://github.com/rpa-exemplo/projeto-rpa.git (fetch)`, `origin\thttps://github.com/rpa-exemplo/projeto-rpa.git (push)`], ok: true };
     }
     case "fetch": {
       const before = { ...repo.remoteRefs };

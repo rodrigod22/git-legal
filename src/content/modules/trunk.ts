@@ -194,7 +194,8 @@ export const trunk: Module = {
         points: [
           "`git reset` **move** a branch para trás (apaga commits do histórico). Só para commits que ainda não saíram da sua máquina.",
           "`git revert` **adiciona** um commit inverso. Seguro para branches compartilhadas.",
-          "Nunca use `git push --force` na `main`. Se alguém sugerir, chame o líder técnico.",
+          "Na RPA, `push --force` e `reset` na `main` são proibidos. O motivo: a `main` está na máquina de todo mundo. Se você reescreve o histórico do remoto, quem já tinha baixado os commits apagados fica com um repositório divergente, o próximo `pull` vira conflito e trabalho pode se perder. O `revert` corrige sem apagar nada.",
+          "Se alguém sugerir `push --force` na `main`, chame o líder técnico antes.",
         ],
       },
       setup: () =>

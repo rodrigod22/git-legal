@@ -113,6 +113,7 @@ export const fundamentos: Module = {
           "`git log --oneline` lista commits de forma compacta; `git log` mostra autor, data e mensagem.",
           "`git show <sha>` exibe o que um commit mudou (o diff). Bastam os 7 primeiros caracteres do hash, e também vale uma referência como `HEAD~1`, o commit anterior ao atual.",
           "`git diff` compara pasta de trabalho × staging; `git diff --staged` compara staging × último commit.",
+          "Na RPA, commit que corrige um bug começa com `fix:`. Assim, no `git log --oneline`, dá para achar as correções de relance e saber o que entrou de novo e o que foi conserto.",
         ],
       },
       setup: () =>

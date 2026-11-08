@@ -211,6 +211,16 @@ describe("coerência do conteúdo com o fluxo trunk-based", () => {
     expect(texto).toMatch(/branch local curta/i);
     expect(texto).toMatch(/não é obrigatório/i);
   });
+  it("investigação explica o prefixo fix: e o motivo", () => {
+    const texto = textoDe("investigacao");
+    expect(texto).toMatch(/começa com `fix:`/);
+    expect(texto).toMatch(/correções/i);
+  });
+  it("revert em produção explica por que push --force e reset são proibidos na main", () => {
+    const texto = textoDe("revert-em-producao");
+    expect(texto).toMatch(/`push --force` e `reset` na `main` são proibidos/);
+    expect(texto).toMatch(/máquina de todo mundo/);
+  });
   it("no-ff não apresenta branch nem --no-ff como regra da empresa", () => {
     const texto = textoDe("no-ff");
     expect(texto).toMatch(/fluxo oficial é commit direto na `main`/);
