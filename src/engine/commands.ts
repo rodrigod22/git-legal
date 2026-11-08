@@ -389,6 +389,11 @@ function runGit(repo: Repo, args: string[]): CommandResult {
     case "switch": {
       const { f, pos } = flags(rest);
       const create = f.has("-b") || f.has("-c") || f.has("--create");
+      const detach = f.has("--detach");
+      const fromRemote = pos[0] && !create && !detach ? G.remoteBranchFor(repo, pos[0]) : null;
+      if (sub === "checkout" && pos.length && !f.has("--") && !create && fromRemote && pos[0] in repo.workdir) {
+        throw new GitError(`fatal: '${pos[0]}' pode ser tanto um arquivo da pasta quanto a branch remota '${fromRemote}'.\ndica: use '--' para separar. Arquivo: git checkout -- ${pos[0]}   Branch: git switch ${pos[0]}`);
+      }
       if (sub === "checkout" && pos.length && (f.has("--") || (!create && !(pos[0] in repo.branches) && pos[0] in repo.workdir))) {
         // git checkout -- arquivo  (restaura arquivo)
         const file = pos[pos.length - 1];
@@ -396,17 +401,21 @@ function runGit(repo: Repo, args: string[]): CommandResult {
       }
       if (pos[0] === "-") throw new GitError("dica: 'git switch -' não é suportado no treinamento; informe o nome da branch.");
       if (!pos[0]) throw new GitError(`fatal: informe a branch. Ex.: git ${sub} ${create ? "-b " : ""}nome-da-branch`);
-      if (sub === "switch" && !create && !f.has("--detach") && !(pos[0] in repo.branches)) {
+      if (sub === "switch" && !create && !detach && !(pos[0] in repo.branches) && !fromRemote) {
         G.resolve(repo, pos[0]); // nome desconhecido tem o erro próprio
         const kind = pos[0] in repo.remoteRefs ? "uma branch remota" : "um commit";
         throw new GitError(`fatal: o git switch espera uma branch, mas '${pos[0]}' é ${kind}.\ndica: para desanexar o HEAD nesse ponto, use 'git switch --detach ${pos[0]}'.`);
       }
-      const r = G.checkout(repo, pos[0], { create, force: f.has("-f") || f.has("--force"), startPoint: create ? pos[1] : undefined, detach: f.has("--detach") });
+      const already = !create && !detach && G.currentBranch(repo) === pos[0];
+      const r = G.checkout(repo, pos[0], { create, force: f.has("-f") || f.has("--force"), startPoint: create ? pos[1] : undefined, detach });
+      if (already) return { repo: r, lines: [`Already on '<g>${esc(pos[0])}</g>' <d>(você já está nessa branch)</d>`], ok: true };
       const lines = create
         ? [`Trocado para a nova branch '<g>${esc(pos[0])}</g>'`]
-        : r.head.type === "branch"
-          ? [`Trocado para a branch '<g>${esc(pos[0])}</g>'`]
-          : [`<y>Nota: você está em 'detached HEAD' no commit ${G.short(r.head.sha)}.</y>`, "<d>Você pode olhar, experimentar e commitar sem afetar nenhuma branch.</d>", "<d>Para voltar: git switch main</d>"];
+        : fromRemote
+          ? [`branch '<g>${esc(pos[0])}</g>' criada para acompanhar '<r>${esc(fromRemote)}</r>'.`, `Trocado para a nova branch '<g>${esc(pos[0])}</g>'`]
+          : r.head.type === "branch"
+            ? [`Trocado para a branch '<g>${esc(pos[0])}</g>'`]
+            : [`<y>Nota: você está em 'detached HEAD' no commit ${G.short(r.head.sha)}.</y>`, "<d>Você pode olhar, experimentar e commitar sem afetar nenhuma branch.</d>", "<d>Para voltar: git switch main</d>"];
       return { repo: r, lines, ok: true, event: create ? "branch" : "checkout" };
     }
     case "merge": {

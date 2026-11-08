@@ -2205,3 +2205,171 @@ describe("N9: cherry-pick e revert de commit de merge", () => {
     expect(run(r, "git revert HEAD~1").ok).toBe(true);
   });
 });
+
+// origin/nova existe, sem branch local; nova tem x.txt = N a mais que main
+const rnova1b4 = () => {
+  let r = G.addRemote(dois1b4());
+  r = G.push(r, { branch: "main" }).repo;
+  return run(r, "git switch -c nova", "echo N > x.txt", "git add .", 'git commit -m "N"', "git push origin nova", "git switch main", "git branch -D nova").repo;
+};
+
+describe("N10: git switch nome com a branch só no remoto", () => {
+  it("cria a branch local a partir de origin/nova, rastreando o remoto, e troca para ela", () => {
+    const antes = rnova1b4();
+    expect(antes.branches.nova).toBeUndefined();
+    const res = run(antes, "git switch nova");
+    expect(res.ok).toBe(true);
+    expect(res.event).toBe("checkout");
+    expect(res.repo.branches.nova).toBe(antes.remoteRefs["origin/nova"]);
+    expect(G.status(res.repo).branch).toBe("nova");
+    expect(res.repo.workdir["x.txt"]).toBe("N\n");
+    expect(texto1b4(res.lines)).toContain("origin/nova");
+    const s = G.status(res.repo);
+    expect(s.hasUpstream).toBe(true);
+    expect(s.ahead).toBe(0);
+    expect(s.behind).toBe(0);
+    expect(G.isCleanRepo(res.repo)).toBe(true);
+  });
+  it("git checkout nome faz o mesmo", () => {
+    const res = run(rnova1b4(), "git checkout nova");
+    expect(res.ok).toBe(true);
+    expect(G.status(res.repo).branch).toBe("nova");
+    expect(texto1b4(res.lines)).toContain("origin/nova");
+  });
+  it("depois, commit e push sem -u vão para origin/nova", () => {
+    const res = run(rnova1b4(), "git switch nova", "echo n > n.txt", "git add .", 'git commit -m "n"', "git push");
+    expect(res.ok).toBe(true);
+    expect(res.repo.remote!.branches.nova).toBe(res.repo.branches.nova);
+    expect(G.status(res.repo).ahead).toBe(0);
+  });
+  it("alteração local que o destino muda: recusa e não cria a branch", () => {
+    const antes = run(rnova1b4(), "echo y >> x.txt").repo;
+    const res = run(antes, "git switch nova");
+    expect(res.ok).toBe(false);
+    expect(texto1b4(res.lines)).toContain("alterações locais");
+    expect(res.repo).toEqual(antes);
+  });
+  it("alteração local em outro arquivo vai junto", () => {
+    const res = run(rnova1b4(), "echo y >> a.txt", "git switch nova");
+    expect(res.ok).toBe(true);
+    expect(G.status(res.repo).branch).toBe("nova");
+    expect(res.repo.workdir["a.txt"]).toBe("a\ny\n");
+  });
+  it("arquivo não rastreado que colide: recusa e não cria a branch", () => {
+    let r = G.addRemote(dois1b4());
+    r = G.push(r, { branch: "main" }).repo;
+    r = run(r, "git switch -c nova", "echo n > n.txt", "git add .", 'git commit -m "n"', "git push origin nova", "git switch main", "git branch -D nova", "echo outro > n.txt").repo;
+    const res = run(r, "git switch nova");
+    expect(res.ok).toBe(false);
+    expect(texto1b4(res.lines)).toContain("não rastreados");
+    expect(res.repo).toEqual(r);
+  });
+  it("durante um merge parado, a recusa é pela operação em andamento, e a branch não é criada", () => {
+    const antes = run(rnova1b4(), "git switch -c f", "echo F > x.txt", "git add .", 'git commit -m "F"', "git switch main", "echo M > x.txt", "git add .", 'git commit -m "M"', "git merge f").repo;
+    const res = run(antes, "git switch nova");
+    expect(res.ok).toBe(false);
+    expect(res.repo.branches.nova).toBeUndefined();
+    expect(res.repo.inProgress?.kind).toBe("merge");
+  });
+  it("git checkout nome, quando o nome também é um arquivo da pasta, é ambíguo; git switch cria a branch", () => {
+    const r = run(rnova1b4(), "echo z > nova").repo;
+    const co = run(r, "git checkout nova");
+    expect(co.ok).toBe(false);
+    expect(texto1b4(co.lines)).toContain("--");
+    expect(co.repo).toEqual(r);
+    const sw = run(r, "git switch nova");
+    expect(sw.ok).toBe(true);
+    expect(G.status(sw.repo).branch).toBe("nova");
+  });
+
+  describe("o que continua igual", () => {
+    it("com a branch local e a remota em pontos diferentes, vale a local, sem criar nada", () => {
+      const antes = run(rnova1b4(), "git branch nova HEAD~1").repo;
+      const res = run(antes, "git switch nova");
+      expect(res.ok).toBe(true);
+      expect(res.repo.branches.nova).toBe(antes.branches.nova);
+      expect(texto1b4(res.lines)).not.toContain("origin/nova");
+      expect(texto1b4(res.lines)).toContain("Trocado para a branch 'nova'");
+    });
+    it("sem fetch, a branch do remoto não é conhecida e o switch dá erro", () => {
+      const r = G.remoteCommit(G.addRemote(dois1b4()), "outra", "ana", "o", (t) => ({ ...t, "o.txt": "o\n" }));
+      const res = run(r, "git switch outra");
+      expect(res.ok).toBe(false);
+      expect(res.repo.branches.outra).toBeUndefined();
+    });
+    it("git switch -c nova cria a partir do HEAD, mesmo com origin/nova", () => {
+      const antes = rnova1b4();
+      const res = run(antes, "git switch -c nova");
+      expect(res.ok).toBe(true);
+      expect(res.repo.branches.nova).toBe(antes.branches.main);
+    });
+    it("git switch --detach nova e git switch origin/nova continuam recusados", () => {
+      expect(run(rnova1b4(), "git switch --detach nova").ok).toBe(false);
+      const res = run(rnova1b4(), "git switch origin/nova");
+      expect(res.ok).toBe(false);
+      expect(texto1b4(res.lines)).toContain("--detach");
+    });
+    it("as missões com remoto continuam vendo só origin/main", () => {
+      const r = G.push(G.addRemote(dois1b4()), { branch: "main" }).repo;
+      expect(Object.keys(r.remoteRefs)).toEqual(["origin/main"]);
+      expect(run(r, "git switch nova").ok).toBe(false);
+    });
+  });
+});
+
+describe("N11: git switch para a branch atual", () => {
+  it("responde Already on, sem erro e sem mudar nada", () => {
+    const antes = dois1b4();
+    const res = run(antes, "git switch main");
+    expect(res.ok).toBe(true);
+    expect(res.event).toBeUndefined();
+    expect(texto1b4(res.lines)).toContain("Already on 'main'");
+    expect(res.repo).toEqual(antes);
+  });
+  it("com alteração local, mantém a alteração", () => {
+    const antes = run(dois1b4(), "echo y >> a.txt").repo;
+    const res = run(antes, "git switch main");
+    expect(res.ok).toBe(true);
+    expect(res.repo).toEqual(antes);
+  });
+  it("git checkout para a branch atual faz o mesmo", () => {
+    const antes = run(dois1b4(), "echo y >> a.txt").repo;
+    const res = run(antes, "git checkout main");
+    expect(res.ok).toBe(true);
+    expect(texto1b4(res.lines)).toContain("Already on 'main'");
+    expect(res.repo).toEqual(antes);
+  });
+  it("com -f, responde Already on e ainda descarta a alteração local, como no Git real", () => {
+    for (const cmd of ["git switch -f main", "git checkout -f main"]) {
+      const res = run(dois1b4(), "echo y >> a.txt", cmd);
+      expect(res.ok).toBe(true);
+      expect(texto1b4(res.lines)).toContain("Already on 'main'");
+      expect(res.repo.workdir["a.txt"]).toBe("a\n");
+      expect(G.isCleanRepo(res.repo)).toBe(true);
+    }
+  });
+  it("não conta como erro na sessão", () => {
+    const antes = dois1b4();
+    expect(execute(antes, "git switch main").ok).toBe(true);
+    expect(execute(antes, "git switch f").ok).toBe(false);
+  });
+
+  describe("o que continua igual", () => {
+    it("durante um merge parado, continua recusado", () => {
+      const res = run(mergeParado1b4(), "git switch main");
+      expect(res.ok).toBe(false);
+      expect(res.repo.inProgress?.kind).toBe("merge");
+    });
+    it("com HEAD desanexado no commit da main, troca de verdade", () => {
+      const res = run(dois1b4(), "git switch --detach main", "git switch main");
+      expect(res.ok).toBe(true);
+      expect(texto1b4(res.lines)).toContain("Trocado para a branch 'main'");
+      expect(G.status(res.repo).branch).toBe("main");
+    });
+    it("git switch -c para uma branch que já existe continua recusado", () => {
+      const res = run(dois1b4(), "git switch -c main");
+      expect(res.ok).toBe(false);
+      expect(texto1b4(res.lines)).toContain("já existe");
+    });
+  });
+});

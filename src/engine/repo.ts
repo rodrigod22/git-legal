@@ -479,6 +479,13 @@ function switchTree(r: Repo, targetSha: Sha | null, what: string) {
   r.index = index;
 }
 
+/** A ref remota que `git switch nome` usaria para criar a branch local: só quando não há branch local com esse nome. */
+export function remoteBranchFor(repo: Repo, name: string): string | null {
+  if (name in repo.branches) return null;
+  const ref = `${repo.remote?.name ?? "origin"}/${name}`;
+  return ref in repo.remoteRefs ? ref : null;
+}
+
 export function checkout(repo: Repo, target: string, opts: { create?: boolean; force?: boolean; startPoint?: string; detach?: boolean } = {}): Repo {
   assertInit(repo);
   assertNoInProgress(repo, "trocar de branch");
@@ -487,8 +494,13 @@ export function checkout(repo: Repo, target: string, opts: { create?: boolean; f
     r = branchCreate(r, target, opts.startPoint);
   }
   if (!opts.detach && currentBranch(r) === target) {
-    throw new GitError(`Você já está em '${target}'`);
+    // como no Git real: "Already on", sem erro; com -f, ainda descarta o trabalho rastreado
+    if (opts.force) replaceTracked(r, headTree(r));
+    return r;
   }
+  // como no Git real: nome que só existe no remoto vira branch local rastreando origin/nome
+  const remoteRef = remoteBranchFor(r, target);
+  if (!opts.create && !opts.detach && remoteRef) r = branchCreate(r, target, remoteRef);
   const isBranch = !opts.detach && target in r.branches;
   const sha = target in r.branches ? r.branches[target] : resolve(r, target);
   if (opts.force) {
