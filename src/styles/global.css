@@ -340,6 +340,11 @@ textarea {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(240, 80, 50, 0.2);
 }
+/* o placeholder padrão do Chrome (#757575) dá 3,78:1 sobre --surface; --muted-2 dá 4,98:1 */
+.hero input::placeholder {
+  color: var(--muted-2);
+  opacity: 1;
+}
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1067,6 +1072,17 @@ textarea {
 }
 .toast.colleague {
   border-color: rgba(232, 121, 249, 0.45);
+}
+.toast .toast-close {
+  margin-left: auto;
+  margin-right: -4px;
+  margin-top: -4px;
+  padding: 4px;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.toast .toast-close:hover {
+  color: var(--text);
 }
 .toast .avatar {
   width: 32px;

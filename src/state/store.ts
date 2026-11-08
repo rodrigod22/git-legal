@@ -25,6 +25,8 @@ export interface Toast {
   title: string;
   text?: string;
   actor?: string;
+  /** tempo em ms até sumir sozinho; o relógio para enquanto o toast tem foco ou o mouse em cima */
+  duration: number;
 }
 
 export interface Completion {
@@ -72,7 +74,7 @@ interface State {
   closeCompletion: () => void;
   toggleSound: () => void;
   resetProgress: () => void;
-  pushToast: (t: Omit<Toast, "id">) => void;
+  pushToast: (t: Omit<Toast, "id" | "duration">) => void;
   /** interno: fecha a missão, calcula XP/estrelas/conquistas */
   _complete: (s: Session) => void;
 }
@@ -104,8 +106,8 @@ export const useStore = create<State>()(
 
       pushToast: (t) => {
         const id = toastSeq++;
-        set((s) => ({ toasts: [...s.toasts, { ...t, id }] }));
-        setTimeout(() => get().dismissToast(id), t.kind === "badge" ? 7000 : 5000);
+        // quem conta o tempo é o componente Toasts, para poder parar o relógio com foco ou mouse em cima
+        set((s) => ({ toasts: [...s.toasts, { ...t, id, duration: t.kind === "badge" ? 7000 : 5000 }] }));
       },
       dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 
