@@ -5,8 +5,8 @@ Treinamento interativo e gamificado de Git para estagiários e devs: **branches,
 ## O que tem dentro
 
 - **Motor Git próprio** (`src/engine/`): commits, branches, HEAD, staging, checkout, merge fast-forward e 3-way com marcadores de conflito reais, rebase (com `--continue`/`--abort`), reset, revert, cherry-pick, stash, reflog e um remoto `origin` simulado com `fetch`/`pull --rebase`/`push` (incluindo rejeição *fetch first*).
-- **Terminal** com histórico, autocompletar (Tab) e saída colorida igual ao Git.
-- **Grafo de commits animado** que reage a cada comando.
+- **Terminal** com histórico (↑↓), autocompletar (Tab, quando há sugestão) e saída colorida igual ao Git.
+- **Grafo de commits animado** que reage a cada comando; clique ou Enter em um hash o coloca na linha de comando.
 - **Editor com resolvedor de conflitos** (manter atual / entrada / ambos).
 - **23 missões em 6 módulos** (`src/content/modules/`), com objetivos verificados automaticamente, dicas, cola de comandos, "colegas" que fazem push no meio da missão e um chefão.
 - **Gamificação**: XP, 5 níveis, 3 estrelas por missão, 9 conquistas, certificado imprimível.
@@ -38,6 +38,12 @@ Cada missão é um objeto em `src/content/modules/*.ts`:
 - `triggers[]` simulam colegas (ex.: Ana faz push quando você commita).
 
 Depois de criar uma missão, adicione a solução em `src/content/missions.test.ts` — o teste garante que ela é resolvível com os comandos ensinados. Outro teste confere se os comandos citados nos textos e na cola funcionam sem aviso de opção não suportada.
+
+## Acessibilidade
+
+- Tudo funciona pelo teclado: Tab e Shift+Tab percorrem os controles na ordem da tela, com foco visível; Enter ou Espaço acionam. No terminal, o Tab completa o comando quando há sugestão e, sem sugestão, segue para o próximo controle. O editor e a tela de conclusão prendem o Tab dentro da janela e fecham com Esc.
+- O texto respeita o contraste mínimo da WCAG AA (4,5:1) e a preferência "reduzir movimento" do sistema: sem confete e sem animações de entrada.
+- Para leitores de tela, cada tela tem título e marcos, os diagramas têm descrição e o terminal anuncia só a saída do último comando. Auditado com `axe-core` em 08/11/2026, sem violações; ainda não testado com NVDA.
 
 ## Limites do simulador
 
