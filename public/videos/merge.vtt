@@ -1,0 +1,31 @@
+WEBVTT
+
+NOTE Legendas do vídeo de abertura do módulo merge do Git Dojo. Geradas por scripts/gerar-legendas.ts.
+
+1
+00:00.000 --> 00:07.000
+Módulo 3 · Merge. Integrando o trabalho: fast-forward e merge de três vias.
+
+2
+00:07.000 --> 00:17.000
+A feature ficou pronta: feature/login tem dois commits novos e a main não recebeu nenhum desde que a branch nasceu. Hora de trazer o trabalho de volta.
+
+3
+00:17.000 --> 00:27.000
+git switch main, depois git merge feature/login. Fast-forward: a main não andou, então o merge é só o ponteiro avançando. Nenhum commit novo é criado.
+
+4
+00:27.000 --> 00:33.000
+Dois jeitos de integrar. Fast-forward: a main só alcança a feature; o ponteiro anda e nada é criado.
+
+5
+00:33.000 --> 00:42.000
+Três vias: as duas branches andaram. O Git compara a base com os dois lados e cria um commit de merge, com dois pais, que registra a união.
+
+6
+00:42.000 --> 00:52.000
+Três coisas para lembrar: faça o merge estando na branch que recebe; partes diferentes do código se combinam sozinhas, a mesma linha vira conflito; --no-ff é opção, não regra.
+
+7
+00:52.000 --> 01:00.000
+Trabalho integrado, histórico linear. Fast-forward quando dá, commit de merge quando precisa. Missão 1: Fast-forward.

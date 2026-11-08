@@ -4,6 +4,7 @@ import { useStore } from "@/state/store";
 import { Topbar } from "@/components/Topbar";
 import { Toasts } from "@/components/Toasts";
 import { MissionComplete } from "@/components/MissionComplete";
+import { ModuleIntro } from "@/components/ModuleIntro";
 import { Home } from "@/views/Home";
 import { DojoMap } from "@/views/DojoMap";
 import { MissionView } from "@/views/MissionView";
@@ -39,6 +40,7 @@ export default function App() {
       </main>
       <Toasts />
       <MissionComplete />
+      <ModuleIntro />
     </MotionConfig>
   );
 }

@@ -1,0 +1,39 @@
+WEBVTT
+
+NOTE Legendas do vídeo de abertura do módulo trunk do Git Dojo. Geradas por scripts/gerar-legendas.ts.
+
+1
+00:00.000 --> 00:07.000
+Módulo 5 · Trunk-based. O fluxo oficial da RPA: commits pequenos, direto na main, várias vezes por dia.
+
+2
+00:07.000 --> 00:13.000
+Alguém chegou antes: você commita a página sobre e a Ana faz push de "ajusta título do index" antes de você.
+
+3
+00:13.000 --> 00:18.000
+git push: rejected, fetch first. O remoto só aceita push quando o que ele tem é ancestral do seu commit.
+
+4
+00:18.000 --> 00:28.000
+git pull --rebase reaplica seus commits por cima dos da Ana; git push é aceito. Histórico linear, sem commit de merge.
+
+5
+00:28.000 --> 00:33.000
+Uma linha só, o time inteiro: você, Ana e Carlos commitam na mesma main, que o origin acompanha.
+
+6
+00:33.000 --> 00:42.000
+O ritual: commit pequeno, git pull --rebase, git push, várias vezes por dia. Quanto mais tempo um commit fica só na sua máquina, maior a chance de conflito. Pequeno e frequente vence grande e raro.
+
+7
+00:42.000 --> 00:48.000
+Proibido na main: git push --force e git reset. O motivo: a main está na máquina de todo mundo; reescrever o histórico do remoto deixa os repositórios divergentes e pode perder trabalho.
+
+8
+00:48.000 --> 00:52.000
+git revert <commit> desfaz com um commit novo. Nada é apagado, tudo fica auditável.
+
+9
+00:52.000 --> 01:00.000
+Push aceito, histórico linear. Commit pequeno, pull --rebase, push, várias vezes por dia. Agora é com você. Missão 1: Push rejeitado.

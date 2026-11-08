@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { ALL_MISSIONS, findMission, MODULES, PLAYGROUND } from "@/content";
+import { videoFor } from "@/content/videos";
 import type { Mission } from "@/content/types";
 import { startSession, runCommand, editFile, evaluate } from "@/content/session";
 import type { Session } from "@/content/session";
@@ -47,6 +48,8 @@ interface State {
   xp: number;
   badges: string[];
   totalCommands: number;
+  /** ids dos módulos cujo vídeo de abertura já foi visto ou dispensado */
+  introsSeen: string[];
   // sessão
   view: View;
   currentMission: Mission | null;
@@ -59,6 +62,8 @@ interface State {
   sound: boolean;
   /** texto aguardando entrar na linha de comando (ex.: hash clicado no grafo) */
   terminalInsert: string | null;
+  /** módulo cujo vídeo de abertura está na tela (aberto antes da missão, ou pelo botão "rever" na trilha) */
+  intro: string | null;
 
   insertInTerminal: (text: string) => void;
   setPlayerName: (n: string) => void;
@@ -74,6 +79,10 @@ interface State {
   closeCompletion: () => void;
   toggleSound: () => void;
   resetProgress: () => void;
+  /** abre o vídeo de abertura de um módulo (botão "rever" na trilha) */
+  openIntro: (moduleId: string) => void;
+  /** fecha o vídeo e marca o módulo como visto, tanto ao terminar quanto ao pular */
+  closeIntro: () => void;
   pushToast: (t: Omit<Toast, "id" | "duration">) => void;
   /** interno: fecha a missão, calcula XP/estrelas/conquistas */
   _complete: (s: Session) => void;
@@ -89,6 +98,7 @@ export const useStore = create<State>()(
       xp: 0,
       badges: [],
       totalCommands: 0,
+      introsSeen: [],
       view: "home",
       currentMission: null,
       session: null,
@@ -99,6 +109,7 @@ export const useStore = create<State>()(
       completion: null,
       sound: true,
       terminalInsert: null,
+      intro: null,
 
       insertInTerminal: (terminalInsert) => set({ terminalInsert }),
       setPlayerName: (playerName) => set({ playerName }),
@@ -115,7 +126,9 @@ export const useStore = create<State>()(
         const found = findMission(id);
         if (!found) return;
         const session = startSession(found.mission);
-        set({ currentMission: found.mission, session, objectives: evaluate(found.mission, session), hintsRevealed: 0, view: "mission", editorPath: null, completion: null });
+        // o vídeo de abertura aparece uma vez por módulo, antes da primeira missão que a pessoa abrir nele
+        const intro = videoFor(found.module.id) && !get().introsSeen.includes(found.module.id) ? found.module.id : null;
+        set({ currentMission: found.mission, session, objectives: evaluate(found.mission, session), hintsRevealed: 0, view: "mission", editorPath: null, completion: null, intro });
       },
       startPlayground: () => {
         const session = startSession(PLAYGROUND);
@@ -161,7 +174,9 @@ export const useStore = create<State>()(
 
       closeCompletion: () => set({ completion: null }),
       toggleSound: () => set((s) => ({ sound: !s.sound })),
-      resetProgress: () => set({ progress: {}, xp: 0, badges: [], totalCommands: 0, view: "home", currentMission: null, session: null }),
+      resetProgress: () => set({ progress: {}, xp: 0, badges: [], totalCommands: 0, introsSeen: [], view: "home", currentMission: null, session: null, intro: null }),
+      openIntro: (moduleId) => set({ intro: videoFor(moduleId) ? moduleId : null }),
+      closeIntro: () => set((s) => ({ intro: null, introsSeen: s.intro && !s.introsSeen.includes(s.intro) ? [...s.introsSeen, s.intro] : s.introsSeen })),
 
       // interno
       _complete: (session: Session) => {
@@ -205,7 +220,7 @@ export const useStore = create<State>()(
     }),
     {
       name: "git-dojo-v1",
-      partialize: (s) => ({ playerName: s.playerName, progress: s.progress, xp: s.xp, badges: s.badges, totalCommands: s.totalCommands, sound: s.sound }),
+      partialize: (s) => ({ playerName: s.playerName, progress: s.progress, xp: s.xp, badges: s.badges, totalCommands: s.totalCommands, sound: s.sound, introsSeen: s.introsSeen }),
     },
   ),
 );

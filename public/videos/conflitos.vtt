@@ -1,0 +1,31 @@
+WEBVTT
+
+NOTE Legendas do vídeo de abertura do módulo conflitos do Git Dojo. Geradas por scripts/gerar-legendas.ts.
+
+1
+00:00.000 --> 00:07.000
+Módulo 4 · Conflitos. Quando duas pessoas mudam a mesma linha.
+
+2
+00:07.000 --> 00:18.000
+Duas pessoas, uma linha: você mudou o título do README.md na feature/titulo e, ao mesmo tempo, o Carlos mudou a mesma linha na main.
+
+3
+00:18.000 --> 00:27.000
+git merge feature/titulo. CONFLICT (content): Merge conflict in README.md. O Git não tem como decidir sozinho: ele pede uma decisão humana.
+
+4
+00:27.000 --> 00:36.000
+Anatomia de um conflito: entre <<<<<<< HEAD e ======= está o seu lado, a branch onde você está. Depois do ======= até >>>>>>> feature/titulo está o lado que está chegando.
+
+5
+00:36.000 --> 00:41.000
+O ======= é só o separador entre os dois lados.
+
+6
+00:41.000 --> 00:51.000
+Resolver é decidir: edite o arquivo até ficar do jeito certo, um lado, o outro ou os dois juntos, e apague os três marcadores.
+
+7
+00:51.000 --> 01:00.000
+git add README.md e git commit fecham o merge. Conflito resolvido, árvore limpa. Conflito não é erro. Agora é com você.

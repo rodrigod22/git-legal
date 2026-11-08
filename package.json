@@ -20,7 +20,9 @@
     "check:movimento": "node scripts/check-1f-movimento.mjs",
     "check:leitor": "node scripts/check-1f-leitor.mjs",
     "check:reflow": "node scripts/check-1g-reflow.mjs",
-    "check:toasts": "node scripts/check-1g-toasts.mjs"
+    "check:toasts": "node scripts/check-1g-toasts.mjs",
+    "check:video": "node scripts/check-2-video.mjs",
+    "legendas": "vite-node scripts/gerar-legendas.ts"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
@@ -32,6 +34,7 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@types/node": "22.19.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",

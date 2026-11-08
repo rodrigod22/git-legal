@@ -1,0 +1,43 @@
+WEBVTT
+
+NOTE Legendas do vídeo de abertura do módulo fundamentos do Git Dojo. Geradas por scripts/gerar-legendas.ts.
+
+1
+00:00.000 --> 00:07.000
+Módulo 1 · Fundamentos. As três áreas do Git: de onde vem cada comando.
+
+2
+00:07.000 --> 00:13.000
+Primeiro dia na RPA. A pasta projeto-rpa tem index.php e config.php, mas nenhum histórico, nenhuma memória.
+
+3
+00:13.000 --> 00:17.000
+Quem mudou a porta do banco ontem? Qual versão funcionava na semana passada? Ninguém sabe. Sua primeira tarefa: colocar o projeto sob controle de versão.
+
+4
+00:17.000 --> 00:26.000
+git init. Initialized empty Git repository. A pasta virou um repositório: cada mudança agora pode virar história.
+
+5
+00:26.000 --> 00:33.000
+As três áreas: working dir, staging e repositório. echo cria o README.md no working dir.
+
+6
+00:33.000 --> 00:38.000
+git add README.md leva o arquivo para a staging, a bandeja do próximo commit.
+
+7
+00:38.000 --> 00:42.000
+git commit -m "primeiro commit" grava a bandeja como um commit no repositório; a branch main aponta para ele.
+
+8
+00:42.000 --> 00:47.000
+Na dúvida, git status: ele diz em que área cada arquivo está. Verde, na bandeja; vermelho, ainda só no disco.
+
+9
+00:47.000 --> 00:52.000
+Um commit, uma intenção: duas mudanças sem relação viram dois commits. git add aceita o nome do arquivo.
+
+10
+00:52.000 --> 01:00.000
+Repositório criado, primeiro commit feito. Tudo no Git passa por três áreas. Agora é com você. Missão 1: Primeiro dia na RPA.

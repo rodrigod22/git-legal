@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
-import { Sprout, GitBranch, GitMerge, Flame, Rocket, Shield, Lock, Check, Award, RotateCcw } from "lucide-react";
+import { Sprout, GitBranch, GitMerge, Flame, Rocket, Shield, Lock, Check, Award, RotateCcw, Play } from "lucide-react";
 import { useStore, isUnlocked, moduleProgress } from "@/state/store";
 import { ALL_MISSIONS, MODULES, MAX_XP } from "@/content";
 import type { Module } from "@/content/types";
 import { levelFor } from "@/content/gamification";
+import { videoFor } from "@/content/videos";
 
 const ICONS: Record<Module["icon"], React.ReactNode> = {
   sprout: <Sprout size={20} />,
@@ -27,7 +28,7 @@ export function Stars({ n, size = 12 }: { n: number; size?: number }) {
 }
 
 export function DojoMap() {
-  const { playerName, progress, xp, startMission, go, resetProgress } = useStore();
+  const { playerName, progress, xp, startMission, go, resetProgress, openIntro, introsSeen } = useStore();
   const done = Object.keys(progress).length;
   const allDone = done >= ALL_MISSIONS.length;
   const lv = levelFor(xp);
@@ -88,6 +89,12 @@ export function DojoMap() {
                 </span>
               </div>
               <p className="desc">{mod.description}</p>
+              {videoFor(mod.id) && (
+                <button className="btn btn-ghost btn-sm module-video" onClick={() => openIntro(mod.id)} title="Vídeo de abertura do módulo, 1 minuto">
+                  <Play size={13} aria-hidden="true" /> {introsSeen.includes(mod.id) ? "Rever o vídeo de abertura" : "Vídeo de abertura"}
+                  <span className="sr-only"> do módulo {mod.title}</span>
+                </button>
+              )}
               <div className="missions">
                 {mod.missions.map((m, i) => {
                   const entry = progress[m.id];

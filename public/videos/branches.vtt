@@ -1,0 +1,39 @@
+WEBVTT
+
+NOTE Legendas do vídeo de abertura do módulo branches do Git Dojo. Geradas por scripts/gerar-legendas.ts.
+
+1
+00:00.000 --> 00:07.000
+Módulo 2 · Branches. Linhas paralelas de trabalho, sem quebrar a main.
+
+2
+00:07.000 --> 00:12.000
+Uma demanda que não cabe em um commit: a tela de login precisa de formulário, validação da senha e sessão.
+
+3
+00:12.000 --> 00:17.000
+Enquanto isso, a main precisa continuar funcionando. Na RPA o padrão é commitar direto na main; para o que leva vários commits, quem preferir usa uma branch local curta.
+
+4
+00:17.000 --> 00:26.000
+git switch -c feature/login. Switched to a new branch. Uma branch é só um ponteiro para um commit: criar uma é instantâneo e barato.
+
+5
+00:26.000 --> 00:33.000
+Branch é um ponteiro. HEAD diz onde você está. git switch -c cria a etiqueta feature/login no mesmo commit da main e move o HEAD para ela.
+
+6
+00:33.000 --> 00:42.000
+git commit: só a branch onde o HEAD está avança. A main continua no mesmo commit, intacta.
+
+7
+00:42.000 --> 00:47.000
+Vida curta: a branch nasce, recebe um a três commits, volta para a main com merge e some com branch -d, no mesmo dia.
+
+8
+00:47.000 --> 00:52.000
+Se está demorando dias, a tarefa é grande demais: quebre em partes. Chamaram para um hotfix? git stash guarda o trabalho pela metade; git stash pop devolve.
+
+9
+00:52.000 --> 01:00.000
+Branch criada, commit isolado, main intacta. Branch é um ponteiro barato: use quando precisar. Agora é com você. Missão 1: Sua primeira branch.

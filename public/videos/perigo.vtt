@@ -1,0 +1,35 @@
+WEBVTT
+
+NOTE Legendas do vídeo de abertura do módulo perigo do Git Dojo. Geradas por scripts/gerar-legendas.ts.
+
+1
+00:00.000 --> 00:07.000
+Módulo 6 · Zona de Perigo. Reescrever e resgatar história, com consciência.
+
+2
+00:07.000 --> 00:17.000
+Três rascunhos antes do push: wip 1, wip 2 e wip 3 ainda não saíram da sua máquina. O time merece um commit limpo, com nome que diga o que entrou.
+
+3
+00:17.000 --> 00:27.000
+git reset --soft HEAD~3: a branch volta três commits e as mudanças ficam na bandeja. git commit -m "adiciona filtro de busca": um commit só, com nome de verdade.
+
+4
+00:27.000 --> 00:36.000
+Os três resets. --soft move a branch e mantém staging e arquivos. --mixed, o padrão, move e limpa a staging. --hard move, limpa e descarta tudo.
+
+5
+00:36.000 --> 00:41.000
+Só em commits que nunca saíram da sua máquina. Na main compartilhada, reset é proibido: lá o certo é git revert.
+
+6
+00:41.000 --> 00:47.000
+O Git lembra de tudo: git branch -D feature/importacao apagou dois dias de trabalho. Pânico? Não. git reflog é o diário do HEAD.
+
+7
+00:47.000 --> 00:52.000
+Commits perdidos continuam no repositório por semanas. git branch feature/importacao 7c1d2e3 traz tudo de volta.
+
+8
+00:52.000 --> 01:00.000
+Commits juntados, branch resgatada. Poder exige consciência: reset só no local, reflog é a rede de segurança. Missão 1: Juntando commits locais.
