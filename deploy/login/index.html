@@ -1,0 +1,215 @@
+<!doctype html>
+<!--
+  Git Dojo — tela de login (Etapa 1H). Página estática servida em /login/, a única parte do site aberta sem
+  sessão. O formulário funciona com POST puro para /_auth/login; login.js só acrescenta o caminho de volta e
+  anuncia os avisos. A CSP do site proíbe script inline, por isso o JavaScript fica em login.js. Como /assets/
+  é protegido, a página usa as fontes do sistema e não depende de nenhum arquivo do build.
+-->
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Entrar — Git Dojo · Iron Systems</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23f05032'/%3E%3Cstop offset='1' stop-color='%238b5cf6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ccircle cx='22' cy='18' r='6' fill='%23fff'/%3E%3Ccircle cx='22' cy='46' r='6' fill='%23fff'/%3E%3Ccircle cx='42' cy='26' r='6' fill='%23fff'/%3E%3Cpath d='M22 24v16M42 32c0 8-20 6-20 14' stroke='%23fff' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <style>
+      /* Paleta do Dojo (src/styles/global.css). Contrastes medidos: texto 14,4:1, texto secundário 6,8:1,
+         botão 5,2:1 (branco sobre #c8381b), borda dos campos 5,0:1 e erro 9,2:1, todos sobre o cartão. */
+      :root {
+        --bg: #0a0e16;
+        --surface: #131a28;
+        --border: #243044;
+        --campo-borda: #7b8aa3;
+        --text: #e6eaf2;
+        --muted: #94a3b8;
+        --accent: #f05032;
+        --botao: #c8381b;
+        --botao-hover: #b02f16;
+        --violet: #8b5cf6;
+        --cyan: #22d3ee;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+      body {
+        background: radial-gradient(1200px 600px at 10% -10%, rgba(139, 92, 246, 0.18), transparent 60%),
+          radial-gradient(900px 500px at 100% 0%, rgba(240, 80, 50, 0.14), transparent 55%), var(--bg);
+        background-attachment: fixed;
+        color: var(--text);
+        font-family: var(--font);
+        font-size: 16px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px 16px;
+      }
+      main {
+        width: 100%;
+        max-width: 400px;
+      }
+      .marca {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        font-size: 20px;
+        letter-spacing: -0.02em;
+        margin-bottom: 20px;
+      }
+      .marca small {
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--muted);
+        letter-spacing: 0;
+      }
+      .logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, var(--accent), var(--violet));
+        color: #fff;
+        box-shadow: 0 4px 14px rgba(240, 80, 50, 0.35);
+        flex: none;
+      }
+      .cartao {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)), var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 28px 24px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-size: 24px;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+      }
+      .sub {
+        margin: 0 0 22px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .campo {
+        margin-bottom: 16px;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        font-size: 15px;
+        margin-bottom: 6px;
+      }
+      input[type="text"],
+      input[type="password"] {
+        display: block;
+        width: 100%;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--campo-borda);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font: inherit;
+      }
+      input[type="text"]:focus,
+      input[type="password"]:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(240, 80, 50, 0.25);
+      }
+      :focus-visible {
+        outline: 2px solid var(--cyan);
+        outline-offset: 2px;
+      }
+      input[aria-invalid="true"] {
+        border-color: #fca5a5;
+      }
+      button {
+        width: 100%;
+        margin-top: 8px;
+        padding: 12px 16px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--botao);
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 6px 20px rgba(240, 80, 50, 0.3);
+      }
+      button:hover {
+        background: var(--botao-hover);
+      }
+      .aviso {
+        display: none;
+        margin: 0 0 18px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 15px;
+      }
+      .aviso:target,
+      .aviso.visivel {
+        display: block;
+      }
+      .aviso.erro {
+        background: #2a1418;
+        border: 1px solid #7f1d1d;
+        color: #fecaca;
+      }
+      .aviso.saiu {
+        background: #13261c;
+        border: 1px solid #166534;
+        color: #86efac;
+      }
+      .rodape {
+        margin: 18px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        text-align: center;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="marca">
+        <span class="logo" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><line x1="6" x2="6" y1="3" y2="15" /><circle cx="18" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path d="M18 9a9 9 0 0 1-9 9" /></svg>
+        </span>
+        <span>Git Dojo <small>· Iron Systems</small></span>
+      </div>
+      <div class="cartao">
+        <h1>Entrar</h1>
+        <p class="sub">Treinamento interativo de Git. Use o login e a senha que você recebeu.</p>
+        <!-- Sem JavaScript, o :target mostra o aviso (login.php volta com #erro, logout.php com #saiu). -->
+        <p id="erro" class="aviso erro" role="alert">Usuário ou senha incorretos. Confira e tente de novo.</p>
+        <p id="saiu" class="aviso saiu" role="status">Você saiu do Git Dojo. Seu progresso continua salvo neste navegador.</p>
+        <form method="post" action="/_auth/login">
+          <input type="hidden" name="volta" id="volta" value="/" />
+          <div class="campo">
+            <label for="usuario">Usuário</label>
+            <input type="text" id="usuario" name="usuario" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus />
+          </div>
+          <div class="campo">
+            <label for="senha">Senha</label>
+            <input type="password" id="senha" name="senha" autocomplete="current-password" required />
+          </div>
+          <button type="submit">Entrar</button>
+        </form>
+      </div>
+      <p class="rodape">Não tem login? Peça a quem cuida do treinamento na Iron Systems.</p>
+    </main>
+    <script src="/login/login.js"></script>
+  </body>
+</html>

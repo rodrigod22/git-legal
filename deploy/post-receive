@@ -3,15 +3,20 @@
 # Arquivo de origem: deploy/post-receive no repositório. A cada push na master:
 #   1. faz checkout do código em /home/deployer/build/gitdojo (fora da raiz do site);
 #   2. instala as dependências e roda `npm run build` (tsc + vite build);
-#   3. sincroniza dist/ com /var/www/gitdojo/public, apagando o que saiu do build;
-#   4. grava o commit publicado em /versao.txt, para conferir pelo navegador.
-# Roda como deployer. Não precisa de sudo: /var/www/gitdojo pertence a deployer:www-data.
+#   3. instala os scripts PHP da tela de login (deploy/auth/*.php) em /var/www/gitdojo/auth/ e gera a
+#      chave das sessões se ela ainda não existir (nunca a sobrescreve: trocar a chave derruba todas as sessões);
+#   4. copia a tela de login (deploy/login/) para dist/login/, para o rsync --delete não apagá-la;
+#   5. sincroniza dist/ com /var/www/gitdojo/public, apagando o que saiu do build;
+#   6. grava o commit publicado em /versao.txt, para conferir pelo navegador (com login).
+# Roda como deployer, que pertence ao grupo www-data. Não precisa de sudo: /var/www/gitdojo pertence a
+# deployer:www-data, e o PHP-FPM (www-data) lê auth/ pelo grupo.
 set -euo pipefail
 
 BRANCH="master"
 REPO="/home/deployer/repos/gitdojo.git"
 FONTE="/home/deployer/build/gitdojo"
 PUBLICO="/var/www/gitdojo/public"
+AUTH="/var/www/gitdojo/auth"
 
 while read -r oldrev newrev ref; do
   if [[ "${ref}" != "refs/heads/${BRANCH}" ]]; then
@@ -29,6 +34,25 @@ while read -r oldrev newrev ref; do
 
   echo "==> npm run build"
   npm run build
+
+  echo "==> Instalando o login em ${AUTH}"
+  mkdir -p "${AUTH}"
+  chgrp www-data "${AUTH}"
+  chmod 750 "${AUTH}"
+  install -m 640 -g www-data deploy/auth/*.php "${AUTH}/"
+  for antigo in "${AUTH}"/*.php; do
+    [[ -e "deploy/auth/$(basename "${antigo}")" ]] || rm -f "${antigo}"
+  done
+  if [[ ! -s "${AUTH}/chave" ]]; then
+    echo "    gerando a chave das sessões (${AUTH}/chave)"
+    ( umask 027; head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n' > "${AUTH}/chave.nova" )
+    chgrp www-data "${AUTH}/chave.nova"
+    chmod 640 "${AUTH}/chave.nova"
+    mv -n "${AUTH}/chave.nova" "${AUTH}/chave"
+    rm -f "${AUTH}/chave.nova"
+  fi
+  rm -rf dist/login
+  cp -r deploy/login dist/login
 
   echo "==> Sincronizando dist/ com ${PUBLICO}"
   mkdir -p "${PUBLICO}"
