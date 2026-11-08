@@ -375,6 +375,13 @@ export function commit(repo: Repo, message: string, opts: { author?: string; all
   const parents = parent ? [parent] : [];
   if (r.inProgress?.other) parents.push(r.inProgress.other);
   const stagedChanges = treeDiff(headTree(r), r.index);
+  // como no Git real: um cherry-pick ou revert que ficou vazio não vira commit; só o merge pode ser commitado sem mudança
+  if (!stagedChanges.length && r.inProgress && r.inProgress.kind !== "merge" && !opts.allowEmpty) {
+    const kind = r.inProgress.kind;
+    throw new GitError(
+      `erro: o ${kind} de ${r.inProgress.label} ficou vazio: nada mudou em relação ao HEAD, então não há o que commitar.\ndica: 'git ${kind} --abort' encerra o ${kind}. Nada se perde, porque não havia mudança.\nNo Git real, 'git ${kind} --skip' faz o mesmo neste caso.`,
+    );
+  }
   if (!stagedChanges.length && !r.inProgress && !opts.allowEmpty) {
     const s = status(r);
     if (s.unstaged.length || s.untracked.length) {
@@ -510,7 +517,8 @@ export function restoreFile(repo: Repo, path: string, opts: { staged?: boolean; 
 
 export interface MergeResult {
   repo: Repo;
-  kind: "up-to-date" | "fast-forward" | "merge-commit" | "conflict";
+  /** empty: revert ou cherry-pick sem efeito; o Git real para com erro */
+  kind: "up-to-date" | "fast-forward" | "merge-commit" | "conflict" | "empty";
   conflicts: string[];
   from: Sha;
   to: Sha;
@@ -828,18 +836,33 @@ export function reset(repo: Repo, ref: string, mode: "soft" | "mixed" | "hard" =
   return r;
 }
 
+/** Como no Git real, commit de merge é recusado sem a opção -m, antes de olhar alterações locais. O Dojo não tem -m. */
+function assertNotMergeCommit(c: Commit, what: "revert" | "cherry-pick") {
+  if (c.parents.length <= 1) return;
+  const dica =
+    what === "cherry-pick"
+      ? "dica: o Dojo não tem a opção -m. Para trazer a branch inteira, use 'git merge'; para trazer uma mudança, escolha um commit comum."
+      : `dica: o Dojo não tem a opção -m. No Git real, 'git revert -m 1 ${short(c.sha)}' desfaz o merge mantendo o lado da branch que o recebeu.`;
+  throw new GitError(`erro: o commit ${short(c.sha)} é um commit de merge, e o ${what} precisa saber qual lado seguir (opção -m).\nfatal: ${what} falhou.\n${dica}`);
+}
+
+/**
+ * Sem efeito (o HEAD já não tem a mudança), o revert para com erro e não fica em andamento, como no Git real.
+ * O resultado "empty" vem com o repositório inalterado.
+ */
 export function revert(repo: Repo, ref: string): MergeResult {
   assertInit(repo);
   assertNoInProgress(repo, "revert");
-  assertClean(repo, "revert");
   const sha = resolve(repo, ref);
   const c = getCommit(repo, sha);
-  if (c.parents.length > 1) throw new GitError("erro: reverter um commit de merge exige escolher o pai (-m) — fora do escopo deste treinamento.");
+  assertNotMergeCommit(c, "revert");
+  assertClean(repo, "revert");
   const head = headSha(repo)!;
   const r = clone(repo);
   const parentTree = c.parents[0] ? r.commits[c.parents[0]].tree : {};
   const { tree, conflicts, theirs } = mergeTrees(c.tree, r.commits[head].tree, parentTree, { ours: "HEAD", theirs: `parent of ${short(sha)} (${c.message})` });
   assertNoUntrackedCollision(r, tree, "revert");
+  if (!conflicts.length && !treeDiff(r.commits[head].tree, tree).length) return { repo, kind: "empty", conflicts: [], from: head, to: sha };
   const message = `Revert "${c.message}"\n\nThis reverts commit ${sha}.`;
   replaceTracked(r, tree, conflicts, theirs);
   r.inProgress = { kind: "revert", other: null, message, label: short(sha) };
@@ -847,12 +870,17 @@ export function revert(repo: Repo, ref: string): MergeResult {
   return { repo: commit(r, message), kind: "merge-commit", conflicts: [], from: head, to: sha };
 }
 
+/**
+ * Sem efeito (a branch já tem a mudança), o cherry-pick para com erro e fica em andamento, como no Git real:
+ * o resultado "empty" vem com o cherry-pick aberto, e o aluno sai dele com --abort.
+ */
 export function cherryPick(repo: Repo, ref: string): MergeResult {
   assertInit(repo);
   assertNoInProgress(repo, "cherry-pick");
-  assertClean(repo, "cherry-pick");
   const sha = resolve(repo, ref);
   const c = getCommit(repo, sha);
+  assertNotMergeCommit(c, "cherry-pick");
+  assertClean(repo, "cherry-pick");
   const head = headSha(repo)!;
   const r = clone(repo);
   const { tree, conflicts, theirs } = applyCommitOnto(r, c, r.commits[head].tree);
@@ -860,6 +888,7 @@ export function cherryPick(repo: Repo, ref: string): MergeResult {
   replaceTracked(r, tree, conflicts, theirs);
   r.inProgress = { kind: "cherry-pick", other: null, message: c.message, label: short(sha) };
   if (conflicts.length) return { repo: r, kind: "conflict", conflicts, from: head, to: sha };
+  if (!treeDiff(r.commits[head].tree, tree).length) return { repo: r, kind: "empty", conflicts: [], from: head, to: sha };
   return { repo: commit(r, c.message), kind: "merge-commit", conflicts: [], from: head, to: sha };
 }
 
@@ -966,7 +995,8 @@ export function pull(repo: Repo, opts: { rebase?: boolean } = {}): PullResult {
     return { repo: res.repo, kind: "rebased", conflicts: [], skipped: res.skipped };
   }
   const res = merge(r, ref, { message: `Merge branch '${branch}' of origin` });
-  return { repo: res.repo, kind: res.kind, conflicts: res.conflicts };
+  // o merge nunca devolve "empty"; isso é só do revert e do cherry-pick
+  return { repo: res.repo, kind: res.kind as Exclude<MergeResult["kind"], "empty">, conflicts: res.conflicts };
 }
 
 /** Simula um colega enviando um commit para o remoto (usado pelas missões). */

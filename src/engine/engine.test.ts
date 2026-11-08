@@ -2050,3 +2050,158 @@ describe("N6: git diff durante um conflito", () => {
     });
   });
 });
+
+// f e main criam i.txt com o mesmo conteúdo, em commits diferentes; estamos em main
+const noop1b4 = () => run(dois1b4(), "git switch -c f", "echo igual > i.txt", "git add .", 'git commit -m "igual-f"', "git switch main", "echo igual > i.txt", "git add .", 'git commit -m "igual-m"').repo;
+// main tem um commit de merge de f
+const mrg1b4 = () => run(dois1b4(), "git switch -c f", "echo f > f.txt", "git add .", 'git commit -m "f"', "git switch main", "echo m > m.txt", "git add .", 'git commit -m "m"', "git merge f").repo;
+
+describe("N8: cherry-pick e revert sem efeito", () => {
+  describe("git cherry-pick", () => {
+    it("para com erro e fica em andamento, sem criar commit, como no Git real", () => {
+      const antes = noop1b4();
+      const res = run(antes, "git cherry-pick f");
+      expect(res.ok).toBe(false);
+      expect(texto1b4(res.lines)).toContain("vazio");
+      expect(texto1b4(res.lines)).toContain("git cherry-pick --abort");
+      expect(res.repo.inProgress?.kind).toBe("cherry-pick");
+      expect(mensagens1b4(res.repo)).toEqual(mensagens1b4(antes));
+      expect(res.repo.workdir).toEqual(antes.workdir);
+      expect(res.repo.index).toEqual(antes.index);
+      const st = texto1b4(run(res.repo, "git status").lines);
+      expect(st).toContain("cherry-pick em andamento");
+      expect(st).not.toContain("unmerged");
+      expect(st).toContain("nothing to commit");
+    });
+    it("git commit durante o cherry-pick vazio é recusado, e --abort encerra", () => {
+      const antes = noop1b4();
+      const parado = run(antes, "git cherry-pick f").repo;
+      const commit = run(parado, 'git commit -m "x"');
+      expect(commit.ok).toBe(false);
+      expect(texto1b4(commit.lines)).toContain("vazio");
+      expect(mensagens1b4(commit.repo)).toEqual(mensagens1b4(antes));
+      expect(commit.repo.inProgress?.kind).toBe("cherry-pick");
+      const abort = run(parado, "git cherry-pick --abort");
+      expect(abort.ok).toBe(true);
+      expect(abort.repo.inProgress).toBeNull();
+      expect(G.isCleanRepo(abort.repo)).toBe(true);
+      expect(mensagens1b4(abort.repo)).toEqual(mensagens1b4(antes));
+    });
+    it("git reset também encerra o cherry-pick vazio", () => {
+      const res = run(noop1b4(), "git cherry-pick f", "git reset");
+      expect(res.ok).toBe(true);
+      expect(res.repo.inProgress).toBeNull();
+      expect(G.isCleanRepo(res.repo)).toBe(true);
+    });
+    it("trocar de branch durante o cherry-pick vazio é recusado", () => {
+      const res = run(noop1b4(), "git cherry-pick f", "git switch f");
+      expect(res.ok).toBe(false);
+      expect(res.repo.inProgress?.kind).toBe("cherry-pick");
+    });
+    it("git cherry-pick HEAD fica vazio do mesmo jeito", () => {
+      const res = run(dois1b4(), "git cherry-pick HEAD");
+      expect(res.ok).toBe(false);
+      expect(res.repo.inProgress?.kind).toBe("cherry-pick");
+      expect(Object.keys(res.repo.commits)).toHaveLength(2);
+    });
+    it("conflito resolvido igual ao HEAD: git commit é recusado, e --abort encerra sem perder nada", () => {
+      const antes = pickParado1b4();
+      const commit = run(antes, "echo M > x.txt", "git add x.txt", 'git commit -m "x"');
+      expect(commit.ok).toBe(false);
+      expect(texto1b4(commit.lines)).toContain("vazio");
+      expect(commit.repo.inProgress?.kind).toBe("cherry-pick");
+      expect(mensagens1b4(commit.repo)).toEqual(mensagens1b4(antes));
+      const abort = run(commit.repo, "git cherry-pick --abort");
+      expect(abort.ok).toBe(true);
+      expect(G.isCleanRepo(abort.repo)).toBe(true);
+      expect(abort.repo.workdir["x.txt"]).toBe("M\n");
+    });
+  });
+
+  describe("git revert", () => {
+    it("sem efeito, para com erro e não fica em andamento", () => {
+      const antes = run(dois1b4(), "echo F > x.txt", "git add .", 'git commit -m "F"', "echo x > x.txt", "git add .", 'git commit -m "volta"').repo;
+      const res = run(antes, "git revert HEAD~1");
+      expect(res.ok).toBe(false);
+      expect(texto1b4(res.lines)).toContain("nada para reverter");
+      expect(res.repo).toEqual(antes);
+    });
+    it("conflito resolvido igual ao HEAD: git commit é recusado, e --abort encerra", () => {
+      const antes = revertParado1b4();
+      const commit = run(antes, "echo Z2 > x.txt", "git add x.txt", 'git commit -m "x"');
+      expect(commit.ok).toBe(false);
+      expect(texto1b4(commit.lines)).toContain("vazio");
+      expect(commit.repo.inProgress?.kind).toBe("revert");
+      expect(mensagens1b4(commit.repo)).toEqual(mensagens1b4(antes));
+      const abort = run(commit.repo, "git revert --abort");
+      expect(abort.ok).toBe(true);
+      expect(G.isCleanRepo(abort.repo)).toBe(true);
+    });
+  });
+
+  describe("o que continua igual", () => {
+    it("cherry-pick de commit que só em parte já está presente cria o commit com o resto", () => {
+      const r = run(dois1b4(), "git switch -c f", "echo igual > i.txt", "echo p > p.txt", "git add .", 'git commit -m "ip"', "git switch main", "echo igual > i.txt", "git add .", 'git commit -m "igual-m"').repo;
+      const res = run(r, "git cherry-pick f");
+      expect(res.ok).toBe(true);
+      expect(mensagens1b4(res.repo)).toEqual(["ip", "igual-m", "dois", "um"]);
+      expect(res.repo.workdir["p.txt"]).toBe("p\n");
+    });
+    it("merge com conflito resolvido igual ao HEAD ainda gera o commit de merge", () => {
+      const res = run(xconf1b4(), "git merge f", "echo M > x.txt", "git add x.txt", 'git commit -m "merge"');
+      expect(res.ok).toBe(true);
+      expect(res.repo.commits[res.repo.branches.main].parents).toHaveLength(2);
+    });
+    it("a colisão com arquivo não rastreado vem antes, e nada fica em andamento", () => {
+      const r = run(noop1b4(), "git switch -c g HEAD~1", "echo outro > i.txt").repo;
+      const res = run(r, "git cherry-pick f");
+      expect(res.ok).toBe(false);
+      expect(texto1b4(res.lines)).toContain("não rastreados");
+      expect(res.repo.inProgress).toBeNull();
+      expect(res.repo.workdir["i.txt"]).toBe("outro\n");
+    });
+  });
+});
+
+describe("N9: cherry-pick e revert de commit de merge", () => {
+  it("git cherry-pick recusa, sem mexer em nada", () => {
+    const antes = run(mrg1b4(), "git switch -c outra HEAD~2").repo;
+    const res = run(antes, "git cherry-pick main");
+    expect(res.ok).toBe(false);
+    expect(texto1b4(res.lines)).toContain("-m");
+    expect(texto1b4(res.lines)).toContain("merge");
+    expect(res.repo).toEqual(antes);
+  });
+  it("git revert recusa, sem mexer em nada", () => {
+    const antes = mrg1b4();
+    const res = run(antes, "git revert HEAD");
+    expect(res.ok).toBe(false);
+    expect(texto1b4(res.lines)).toContain("-m");
+    expect(res.repo).toEqual(antes);
+  });
+  it("a recusa vem antes da checagem de alteração local, como no Git real", () => {
+    const pick = run(mrg1b4(), "git switch -c outra HEAD~2", "echo s >> a.txt", "git cherry-pick main");
+    expect(pick.ok).toBe(false);
+    expect(texto1b4(pick.lines)).toContain("-m");
+    expect(texto1b4(pick.lines)).not.toContain("alterações locais");
+    const rev = run(mrg1b4(), "echo s >> a.txt", "git revert HEAD");
+    expect(rev.ok).toBe(false);
+    expect(texto1b4(rev.lines)).toContain("-m");
+    expect(texto1b4(rev.lines)).not.toContain("alterações locais");
+  });
+  it("hash desconhecido continua com o erro de referência", () => {
+    const res = run(mrg1b4(), "git cherry-pick 0000abcd");
+    expect(res.ok).toBe(false);
+    expect(texto1b4(res.lines)).toContain("referência desconhecida");
+  });
+  it("durante um cherry-pick parado, a recusa é pela operação em andamento", () => {
+    const res = run(pickParado1b4(), "git cherry-pick HEAD~1");
+    expect(res.ok).toBe(false);
+    expect(texto1b4(res.lines)).toContain("em andamento");
+  });
+  it("cherry-pick e revert de commit comum continuam funcionando", () => {
+    const r = mrg1b4();
+    expect(run(r, "git switch -c outra HEAD~2", "git cherry-pick f").ok).toBe(true);
+    expect(run(r, "git revert HEAD~1").ok).toBe(true);
+  });
+});

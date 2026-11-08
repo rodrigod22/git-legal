@@ -491,6 +491,9 @@ function runGit(repo: Repo, args: string[]): CommandResult {
       if (f.has("--abort")) return { repo: G.abortInProgress(repo, "revert"), lines: ["<d>Revert abortado.</d>"], ok: true };
       if (!pos[0]) throw new GitError("fatal: informe o commit a reverter. Ex.: git revert HEAD");
       const res = G.revert(repo, pos[0]);
+      if (res.kind === "empty") {
+        return failure(res.repo, `erro: nada para reverter: o HEAD já não tem a mudança do commit ${G.short(res.to)} (${repo.commits[res.to].message.split("\n")[0]}).\nNada foi alterado, e nenhum revert ficou em andamento.`);
+      }
       if (res.kind === "conflict") return { repo: res.repo, lines: res.conflicts.map((c) => `<r>CONFLICT (content): conflict in ${esc(c)}</r>`), ok: true, event: "conflict" };
       return { repo: res.repo, lines: [`[<g>${esc(G.currentBranch(res.repo) ?? "HEAD")}</g> <y>${G.short(G.headSha(res.repo)!)}</y>] Revert "${esc(repo.commits[res.to].message)}"`], ok: true, event: "commit" };
     }
@@ -499,6 +502,18 @@ function runGit(repo: Repo, args: string[]): CommandResult {
       if (f.has("--abort")) return { repo: G.abortInProgress(repo, "cherry-pick"), lines: ["<d>Cherry-pick abortado.</d>"], ok: true };
       if (!pos[0]) throw new GitError("fatal: informe o commit. Ex.: git cherry-pick a1b2c3d");
       const res = G.cherryPick(repo, pos[0]);
+      if (res.kind === "empty") {
+        return {
+          repo: res.repo,
+          lines: [
+            `<r>erro: o cherry-pick de ${G.short(res.to)} (${esc(repo.commits[res.to].message.split("\n")[0])}) ficou vazio: a branch atual já tem essa mudança.</r>`,
+            "<r>Nada foi commitado, e o cherry-pick continua em andamento, como no Git real.</r>",
+            "<d>dica: 'git cherry-pick --abort' encerra. No Git real, 'git cherry-pick --skip' faz o mesmo neste caso.</d>",
+          ],
+          ok: false,
+          event: "error",
+        };
+      }
       if (res.kind === "conflict") return { repo: res.repo, lines: res.conflicts.map((c) => `<r>CONFLICT (content): conflict in ${esc(c)}</r>`), ok: true, event: "conflict" };
       return { repo: res.repo, lines: [`[<g>${esc(G.currentBranch(res.repo) ?? "HEAD")}</g> <y>${G.short(G.headSha(res.repo)!)}</y>] ${esc(repo.commits[res.to].message)}`], ok: true, event: "commit" };
     }
@@ -646,8 +661,10 @@ function statusLines(repo: Repo): string[] {
     else if (s.behind) lines.push(`<y>Your branch is behind 'origin/${esc(s.branch!)}' by ${s.behind} commit(s).</y> <d>(use "git pull")</d>`);
     else lines.push(`Your branch is up to date with 'origin/${esc(s.branch!)}'.`);
   }
-  if (s.inProgress) {
+  if (s.inProgress && s.conflicts.length) {
     lines.push("", `<y>You have unmerged paths — ${s.inProgress.kind} em andamento.</y>`, "<d>  (fix conflicts and run \"git commit\")</d>", `<d>  (use "git ${s.inProgress.kind} --abort" to abort)</d>`);
+  } else if (s.inProgress) {
+    lines.push("", `<y>${s.inProgress.kind} em andamento, sem conflito pendente.</y>`, "<d>  (all conflicts fixed: run \"git commit\")</d>", `<d>  (use "git ${s.inProgress.kind} --abort" to abort)</d>`);
   }
   if (s.conflicts.length) {
     lines.push("", "Unmerged paths:", '<d>  (use "git add <file>..." to mark resolution)</d>');
