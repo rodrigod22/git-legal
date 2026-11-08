@@ -38,6 +38,10 @@ Cada missão é um objeto em `src/content/modules/*.ts`:
 - `objectives[]` são funções `check(ctx)` sobre o repositório, o histórico de comandos e os commits exibidos com `git show` (`ctx.shown`).
 - `triggers[]` simulam colegas (ex.: Ana faz push quando você commita).
 
+### Roteiros de navegador
+
+Além do `npm test`, a pasta [`scripts/`](scripts/README.md) tem roteiros que abrem o Dojo no Chrome com `playwright-core` e conferem telas, acessibilidade (`axe-core`), reflow, teclado e o build servido de subpasta, além de dois roteiros que comparam o motor com o Git real. Cada um está descrito em `scripts/README.md`, com o atalho `npm run check:<nome> -- <pasta-de-saída>`.
+
 Depois de criar uma missão, adicione a solução em `src/content/missions.test.ts` — o teste garante que ela é resolvível com os comandos ensinados. Outro teste confere se os comandos citados nos textos e na cola funcionam sem aviso de opção não suportada.
 
 ## Acessibilidade

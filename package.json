@@ -9,7 +9,18 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check:telas": "node scripts/check-1b-telas.mjs",
+    "check:fluxo": "node scripts/check-1b-fluxo.mjs",
+    "check:impressao": "node scripts/check-1b-impressao.mjs",
+    "check:mensagens": "node scripts/check-1b2-mensagens.mjs tmp-check && node scripts/check-1b3-mensagens.mjs tmp-check && node scripts/check-1b4-mensagens.mjs tmp-check",
+    "check:offline": "node scripts/check-1d-offline.mjs",
+    "check:a11y": "node scripts/check-1f-acessibilidade.mjs",
+    "check:teclado": "node scripts/check-1f-teclado.mjs",
+    "check:movimento": "node scripts/check-1f-movimento.mjs",
+    "check:leitor": "node scripts/check-1f-leitor.mjs",
+    "check:reflow": "node scripts/check-1g-reflow.mjs",
+    "check:toasts": "node scripts/check-1g-toasts.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
@@ -24,6 +35,8 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "axe-core": "4.14.0",
+    "playwright-core": "1.65.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.3",
     "vitest": "^2.1.8"

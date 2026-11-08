@@ -2,5 +2,5 @@ node_modules
 dist
 .vite
 *.log
-scripts/
-analises
+analises/
+tmp-check/
