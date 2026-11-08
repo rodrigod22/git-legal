@@ -41,7 +41,7 @@ Depois de criar uma missão, adicione a solução em `src/content/missions.test.
 
 ## Acessibilidade
 
-- Tudo funciona pelo teclado: Tab e Shift+Tab percorrem os controles na ordem da tela, com foco visível; Enter ou Espaço acionam. No terminal, o Tab completa o comando quando há sugestão e, sem sugestão, segue para o próximo controle. O editor e a tela de conclusão prendem o Tab dentro da janela e fecham com Esc.
+- Tudo funciona pelo teclado: Tab e Shift+Tab percorrem os controles na ordem da tela, com foco visível; Enter ou Espaço acionam. No terminal, o Tab completa o comando quando há sugestão e, sem sugestão, segue para o próximo controle. O editor e a tela de conclusão prendem o Tab dentro da janela e fecham com Esc. Os avisos no canto da tela (conquistas e eventos dos colegas) têm botão de fechar, somem sozinhos em alguns segundos e param de contar o tempo enquanto estão com foco ou com o mouse em cima.
 - O texto respeita o contraste mínimo da WCAG AA (4,5:1) e a preferência "reduzir movimento" do sistema: sem confete e sem animações de entrada.
 - Para leitores de tela, cada tela tem título e marcos, os diagramas têm descrição e o terminal anuncia só a saída do último comando. Auditado com `axe-core` em 08/11/2026, sem violações; ainda não testado com NVDA.
 
