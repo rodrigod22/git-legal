@@ -2,6 +2,7 @@
 // Uso: node scripts/check-1b-fluxo.mjs <pasta-de-saida> <chrome|msedge> <desktop|celular|celular-deitado> [url]
 import { chromium, devices } from "playwright-core";
 import path from "node:path";
+import { dispensaVideo } from "./lib-missoes.mjs";
 
 const [outDir, channel = "chrome", formato = "desktop", url = "http://127.0.0.1:5199/"] = process.argv.slice(2);
 const browser = await chromium.launch({ channel, headless: true });
@@ -64,6 +65,7 @@ await semVazamento("trilha");
 
 // missão 1 do começo ao fim
 await page.locator(".mission-row", { hasText: "Primeiro dia na RPA" }).click();
+await dispensaVideo(page);
 await page.waitForTimeout(600);
 await shot("1-missao");
 await semVazamento("missão");

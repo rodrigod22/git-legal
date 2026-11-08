@@ -30,6 +30,7 @@ Todos os roteiros terminam com um resumo `OK`/`FALHA` e com "sem erros na págin
 | `check-1f-leitor.mjs` | Região `aria-live` do terminal | `npm run check:leitor` |
 | `check-1g-reflow.mjs` | Reflow em 320 px e zoom de 200% | `npm run check:reflow -- <pasta>` |
 | `check-1g-toasts.mjs` | Toasts fecháveis pelo teclado e relógio que para | `npm run check:toasts` |
+| `check-2-video.mjs` | Vídeo de abertura do módulo: janela antes da primeira missão, sem tocar sozinho, legendas, transcrição, axe, Pular, Escape, não repete, rever pela trilha, arquivos servidos | `npm run check:video -- <pasta>` |
 
 ## Fidelidade ao Git real
 
@@ -38,7 +39,9 @@ Todos os roteiros terminam com um resumo `OK`/`FALHA` e com "sem erros na págin
 | `comparar-dojo-git-real.ts` | Gera sequências aleatórias de comandos, roda no motor do Dojo e no Git instalado e compara as saídas | `npx vite-node scripts/comparar-dojo-git-real.ts <pasta> <sequências> <semente> [diff]` |
 | `medir-desvios-git-real.sh` | Cenários fixos medidos no Git real, usados para desenhar as correções do motor | `bash scripts/medir-desvios-git-real.sh <pasta>` |
 
-`lib-missoes.mjs` é código compartilhado pelos roteiros de tela.
+`lib-missoes.mjs` é código compartilhado pelos roteiros de tela, inclusive `dispensaVideo(page)`, que fecha a janela do vídeo de abertura quando ela aparece.
+
+`gerar-legendas.ts` escreve `public/videos/<modulo>.vtt` a partir das deixas de `src/content/videos.ts`: `npm run legendas`.
 
 ## Observações
 

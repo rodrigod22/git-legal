@@ -77,6 +77,15 @@ await page.keyboard.press("Enter");
 await page.waitForTimeout(700);
 check("trilha: Enter abre a missão", (await page.locator(".mission-title").count()) === 1);
 
+// Vídeo de abertura (Fase 2): abre numa janela com o foco no botão de pular; Enter fecha e devolve a missão
+check("vídeo: janela de abertura do módulo aparece", (await page.locator(".intro[role=dialog]").count()) === 1);
+const focoIntro = await page.evaluate(() => document.activeElement?.textContent ?? "");
+check("vídeo: foco inicial no botão de pular", /Pular vídeo/.test(focoIntro), focoIntro);
+await shot("1b-video-foco");
+await page.keyboard.press("Enter");
+await page.waitForTimeout(500);
+check("vídeo: Enter fecha a janela", (await page.locator(".intro[role=dialog]").count()) === 0);
+
 // Missão: ordem de foco do painel até o terminal
 paradas.length = 0;
 const linha = await tabAte(re(/input.*Linha de comando/));

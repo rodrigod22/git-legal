@@ -2,6 +2,7 @@
 // Não substitui um teste com leitor de tela real; confere a estrutura que o leitor vai ler.
 // Uso: node scripts/check-1f-leitor.mjs [url]  (padrão: http://127.0.0.1:5199/)
 import { chromium } from "playwright-core";
+import { dispensaVideo } from "./lib-missoes.mjs";
 
 const [url = "http://127.0.0.1:5199/"] = process.argv.slice(2);
 const browser = await chromium.launch({ channel: "chrome", headless: true });
@@ -19,6 +20,7 @@ await page.fill("input[aria-label='Seu nome']", "Leitor");
 await page.keyboard.press("Enter");
 await page.waitForTimeout(500);
 await page.locator(".mission-row:not([disabled])").first().click();
+await dispensaVideo(page);
 await page.waitForTimeout(700);
 
 const live = page.locator("[data-testid='saida-leitor']");

@@ -3,7 +3,7 @@
 // Uso: node scripts/check-1d-offline.mjs <pasta-de-saida> [url]  (padrão: http://127.0.0.1:5198/git-dojo/)
 import { chromium } from "playwright-core";
 import path from "node:path";
-import { idsDasMissoes, progressoCompleto } from "./lib-missoes.mjs";
+import { idsDasMissoes, progressoCompleto, dispensaVideo } from "./lib-missoes.mjs";
 
 const [outDir, url = "http://127.0.0.1:5198/git-dojo/"] = process.argv.slice(2);
 const base = new URL(url);
@@ -69,6 +69,7 @@ await shot("2-mapa");
 
 // Missão
 await page.locator(".mission-row:not([disabled])").first().click();
+await dispensaVideo(page);
 await page.waitForTimeout(600);
 check("missão abre com terminal", (await page.locator("input[aria-label='Linha de comando']").count()) === 1);
 await page.fill("input[aria-label='Linha de comando']", "git status");
@@ -102,6 +103,7 @@ const nomeSalvo = await page.inputValue("input[aria-label='Seu nome']");
 const storage = await page.evaluate(() => JSON.parse(localStorage.getItem("git-dojo-v1") ?? "{}").state?.playerName);
 check("nome sobrevive ao reload (localStorage na subpasta)", nomeSalvo === "Teste Offline", `campo: "${nomeSalvo}" · storage: "${storage}"`);
 await page.getByRole("button", { name: /Continuar|Começar/ }).click();
+await dispensaVideo(page);
 await page.waitForTimeout(600);
 check("progresso sobrevive ao reload: mapa oferece o certificado", (await page.getByRole("button", { name: /Ver certificado/ }).count()) === 1);
 await page.getByRole("button", { name: /Ver certificado/ }).click();

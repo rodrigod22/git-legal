@@ -6,7 +6,7 @@
 import { chromium } from "playwright-core";
 import fs from "node:fs";
 import path from "node:path";
-import { idsDasMissoes, progressoCompleto } from "./lib-missoes.mjs";
+import { idsDasMissoes, progressoCompleto, dispensaVideo } from "./lib-missoes.mjs";
 
 const [outDir, url = "http://127.0.0.1:5199/"] = process.argv.slice(2);
 if (!outDir) {
@@ -112,6 +112,7 @@ for (const [perfil, opcoes] of Object.entries(PERFIS)) {
 
   // 3. missão, com saída no terminal
   await page.locator(".mission-row:not([disabled])").first().click();
+  await dispensaVideo(page);
   await page.waitForTimeout(700);
   await type("git status");
   await medir(page, perfil, "3-missao");
@@ -157,6 +158,7 @@ for (const [perfil, opcoes] of Object.entries(PERFIS)) {
   await page.reload();
   await page.waitForTimeout(900);
   await page.getByRole("button", { name: /Continuar|Começar/ }).click();
+  await dispensaVideo(page);
   await page.waitForTimeout(600);
   await page.getByRole("button", { name: /Ver certificado/ }).click();
   await page.waitForTimeout(900);

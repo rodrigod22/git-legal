@@ -38,6 +38,10 @@ Cada missão é um objeto em `src/content/modules/*.ts`:
 - `objectives[]` são funções `check(ctx)` sobre o repositório, o histórico de comandos e os commits exibidos com `git show` (`ctx.shown`).
 - `triggers[]` simulam colegas (ex.: Ana faz push quando você commita).
 
+### Vídeos de abertura
+
+Cada módulo tem um vídeo de 60 s, sem voz, com música e efeitos, que abre antes da primeira missão do módulo (botão "Pular" sempre à mão) e pode ser revisto pela trilha. Os MP4 (1280×720, cerca de 1,5 MB cada), as legendas `.vtt` e os pôsteres ficam em `public/videos/` e só são baixados quando a pessoa aperta "Assistir" (`preload="none"`). A transcrição em texto fica no próprio player. Os vídeos são páginas HTML animadas, renderizadas localmente com o HyperFrames; a produção está documentada em [`videos/README.md`](videos/README.md) e as deixas das legendas em `src/content/videos.ts`.
+
 ### Roteiros de navegador
 
 Além do `npm test`, a pasta [`scripts/`](scripts/README.md) tem roteiros que abrem o Dojo no Chrome com `playwright-core` e conferem telas, acessibilidade (`axe-core`), reflow, teclado e o build servido de subpasta, além de dois roteiros que comparam o motor com o Git real. Cada um está descrito em `scripts/README.md`, com o atalho `npm run check:<nome> -- <pasta-de-saída>`.
@@ -63,4 +67,4 @@ O motor cobre os comandos do treinamento, não o Git inteiro:
 ## Próximos passos sugeridos
 
 - Backend Laravel com ranking da empresa (o store já isola o progresso em `progress`/`xp`/`badges`).
-- Vídeos de abertura dos módulos com [HyperFrames](https://github.com/heygen-com/hyperframes).
+- ~~Vídeos de abertura dos módulos com HyperFrames.~~ Feito na Fase 2 (seção "Vídeos de abertura"). Voz nos vídeos fica para uma fase seguinte.

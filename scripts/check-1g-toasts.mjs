@@ -1,6 +1,7 @@
 // Item 3 da Etapa 1G: toasts dispensáveis pelo teclado, relógio parado com foco ou mouse em cima, e contraste do placeholder do nome.
 // Uso: node scripts/check-1g-toasts.mjs [url]  (padrão: http://127.0.0.1:5199/)
 import { chromium } from "playwright-core";
+import { dispensaVideo } from "./lib-missoes.mjs";
 
 const url = process.argv[2] ?? "http://127.0.0.1:5199/";
 const results = [];
@@ -21,6 +22,7 @@ await page.fill("input[aria-label='Seu nome']", "Teste Toast");
 await page.keyboard.press("Enter");
 await page.waitForTimeout(500);
 await page.locator(".mission-row:not([disabled])").first().click();
+await dispensaVideo(page);
 await page.waitForTimeout(500);
 const input = page.locator("input[aria-label='Linha de comando']");
 const type = async (cmd) => {
@@ -76,6 +78,7 @@ await page.fill("input[aria-label='Seu nome']", "Teste Toast");
 await page.keyboard.press("Enter");
 await page.waitForTimeout(500);
 await page.locator(".mission-row:not([disabled])").first().click();
+await dispensaVideo(page);
 await page.waitForTimeout(500);
 for (const c of ["git status", "git init", 'echo "# Portal RPA" > README.md', "git add README.md"]) await type(c);
 await type('git commit -m "primeiro commit"');

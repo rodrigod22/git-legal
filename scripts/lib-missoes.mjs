@@ -18,6 +18,22 @@ export function idsDasMissoes() {
   return ids;
 }
 
+/**
+ * Desde a Fase 2, a primeira missão aberta em cada módulo mostra o vídeo de abertura numa janela.
+ * Os roteiros que não testam o vídeo dispensam a janela pelo botão "Pular", se ela aparecer.
+ */
+export async function dispensaVideo(page) {
+  const botao = page.getByRole("button", { name: /Pular vídeo|Começar a missão|^Fechar$/ }).last();
+  try {
+    await botao.waitFor({ state: "visible", timeout: 1500 });
+    await botao.click();
+    await page.waitForTimeout(300);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function progressoCompleto(ids) {
   return Object.fromEntries(ids.map((id) => [id, { completedAt: 1, stars: 3, xp: 1, hintsUsed: 0, errors: 0, commands: 1, seconds: 1 }]));
 }

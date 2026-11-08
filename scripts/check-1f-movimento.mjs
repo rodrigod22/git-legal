@@ -3,6 +3,7 @@
 // Uso: node scripts/check-1f-movimento.mjs <pasta-de-saida> [url]  (padrão: http://127.0.0.1:5199/)
 import { chromium } from "playwright-core";
 import path from "node:path";
+import { dispensaVideo } from "./lib-missoes.mjs";
 
 const [outDir, url = "http://127.0.0.1:5199/"] = process.argv.slice(2);
 const browser = await chromium.launch({ channel: "chrome", headless: true });
@@ -31,6 +32,7 @@ async function medir(reduce) {
   await page.keyboard.press("Enter");
   await page.waitForTimeout(600);
   await page.locator(".mission-row:not([disabled])").first().click();
+  await dispensaVideo(page);
   await page.waitForTimeout(800);
   const input = page.locator("input[aria-label='Linha de comando']");
   const type = async (cmd, espera = 180) => {
