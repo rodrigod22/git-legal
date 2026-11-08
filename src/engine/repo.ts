@@ -419,32 +419,43 @@ export function branchRename(repo: Repo, from: string, to: string): Repo {
   return r;
 }
 
-/** Troca a árvore de trabalho para `targetSha`, preservando alterações locais que não conflitem. */
+/**
+ * Troca a árvore de trabalho para `targetSha`, levando junto o trabalho local que o destino não sobrescreveria.
+ * Como no Git real: alteração em staging, inclusive arquivo novo, e edição sem add são recusadas se o destino
+ * muda o arquivo; arquivo apagado da pasta sem add não é recusado, e o destino repõe a versão dele se for outra;
+ * arquivo não rastreado fica, mas é recusado se colide com o destino.
+ */
 function switchTree(r: Repo, targetSha: Sha | null, what: string) {
+  if (r.conflicts.length) throw new GitError(`erro: ${what} não é possível com conflitos não resolvidos.`);
   const oldHead = headTree(r);
   const target = targetSha ? r.commits[targetSha].tree : {};
-  const localWork = treeDiff(oldHead, r.workdir);
-  const localIndex = treeDiff(oldHead, r.index);
-  const touched = new Set([...localWork, ...localIndex].map((f) => f.path));
-  const blocked = [...touched].filter((p) => (oldHead[p] ?? null) !== (target[p] ?? null) && p in oldHead);
-  if (r.conflicts.length) throw new GitError(`erro: ${what} não é possível com conflitos não resolvidos.`);
+  const changes = (p: string) => (oldHead[p] ?? null) !== (target[p] ?? null);
+  const staged = treeDiff(oldHead, r.index).map((f) => f.path);
+  const unstaged = treeDiff(r.index, r.workdir).filter((f) => f.kind !== "new");
+  const edited = unstaged.filter((f) => f.kind === "modified").map((f) => f.path);
+  const removed = unstaged.filter((f) => f.kind === "deleted").map((f) => f.path);
+  const blocked = [...new Set([...staged, ...edited])].filter(changes).sort();
   if (blocked.length) {
     throw new GitError(
       `erro: suas alterações locais nos arquivos abaixo seriam sobrescritas por ${what}:\n${blocked.map((p) => `\t${p}`).join("\n")}\ndica: faça commit ou 'git stash' antes de trocar de branch.`,
     );
   }
-  const newWork: Tree = { ...target };
-  const newIndex: Tree = { ...target };
-  for (const p of touched) {
-    if (p in r.workdir) newWork[p] = r.workdir[p];
-    else delete newWork[p];
-    if (p in r.index) newIndex[p] = r.index[p];
-    else delete newIndex[p];
+  assertNoUntrackedCollision(r, target, what);
+  const workdir: Tree = { ...target };
+  const index: Tree = { ...target };
+  for (const p of staged) {
+    if (p in r.index) index[p] = r.index[p];
+    else delete index[p];
   }
-  // arquivos não rastreados continuam
-  for (const p of Object.keys(r.workdir)) if (!(p in r.index) && !(p in target)) newWork[p] = r.workdir[p];
-  r.workdir = newWork;
-  r.index = newIndex;
+  for (const p of [...staged, ...edited]) {
+    if (p in r.workdir) workdir[p] = r.workdir[p];
+    else delete workdir[p];
+  }
+  // apagado sem add: continua apagado se o destino tem a mesma versão; se não, fica a versão do destino
+  for (const p of removed) if (!changes(p)) delete workdir[p];
+  for (const p of untrackedPaths(r)) workdir[p] = r.workdir[p];
+  r.workdir = workdir;
+  r.index = index;
 }
 
 export function checkout(repo: Repo, target: string, opts: { create?: boolean; force?: boolean; startPoint?: string; detach?: boolean } = {}): Repo {
@@ -519,12 +530,13 @@ function mergeTrees(base: Tree, ours: Tree, theirs: Tree, labels: { ours: string
   return { tree, conflicts };
 }
 
-/** Como no Git real, o merge só recusa trabalho local que ele sobrescreveria. */
+/** Como no Git real, o merge só recusa trabalho local que ele sobrescreveria. Arquivo apagado da pasta sem add não conta: o merge repõe a versão dele. */
 function assertMergeKeepsLocalWork(repo: Repo, merged: Tree, conflicts: string[] = []) {
   const s = status(repo);
   const head = headTree(repo);
   const touched = (p: string) => conflicts.includes(p) || head[p] !== merged[p];
-  const dirty = [...new Set([...s.staged, ...s.unstaged].map((f) => f.path))].filter(touched);
+  const local = [...s.staged, ...s.unstaged.filter((f) => f.kind !== "deleted")].map((f) => f.path);
+  const dirty = [...new Set(local)].filter(touched);
   if (dirty.length) {
     throw new GitError(`erro: suas alterações locais seriam sobrescritas por merge:\n${dirty.map((p) => `\t${p}`).join("\n")}\ndica: faça commit ou 'git stash' antes do merge.`);
   }

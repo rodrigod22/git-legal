@@ -1400,3 +1400,164 @@ describe("git checkout -f e arquivo não rastreado", () => {
     expect(G.isCleanRepo(res.repo)).toBe(true);
   });
 });
+
+describe("git switch, git checkout e git merge com trabalho local que colide", () => {
+  const dois = () => run(G.createRepo({ user: "voce" }), "git init", "echo a > a.txt", "echo x > x.txt", "git add .", 'git commit -m "um"', "echo 2 > b.txt", "git add .", 'git commit -m "dois"').repo;
+  const texto = (lines: string[]) => lines.join("\n");
+  // f tem f.txt a mais que main; estamos em main
+  const fx = () => run(dois(), "git switch -c f", "echo f > f.txt", "git add .", 'git commit -m "f"', "git switch main").repo;
+  // f mudou x.txt para F; main continua com x
+  const fxx = () => run(dois(), "git switch -c f", "echo F > x.txt", "echo f > f.txt", "git add .", 'git commit -m "F"', "git switch main").repo;
+  // f e main divergem em x.txt (F e M); estamos em main
+  const xconf = () => run(fxx(), "echo M > x.txt", "git add .", 'git commit -m "M"').repo;
+  // f apagou b.txt; estamos em main
+  const fsemb = () => run(dois(), "git switch -c f", "git rm b.txt", 'git commit -m "tira"', "git switch main").repo;
+
+  describe("arquivo não rastreado que colide com o destino", () => {
+    it("git switch recusa e nada muda", () => {
+      const antes = run(fx(), "echo outro > f.txt").repo;
+      const res = run(antes, "git switch f");
+      expect(res.ok).toBe(false);
+      expect(texto(res.lines)).toContain("não rastreados");
+      expect(texto(res.lines)).toContain("f.txt");
+      expect(res.repo).toEqual(antes);
+    });
+    it("git checkout recusa", () => {
+      const antes = run(fx(), "echo outro > f.txt").repo;
+      const res = run(antes, "git checkout f");
+      expect(res.ok).toBe(false);
+      expect(res.repo).toEqual(antes);
+    });
+    it("recusa mesmo com conteúdo idêntico", () => {
+      const res = run(fx(), "echo f > f.txt", "git switch f");
+      expect(res.ok).toBe(false);
+      expect(G.status(res.repo).branch).toBe("main");
+    });
+    it("git switch -c nova f recusa e não cria a branch", () => {
+      const antes = run(fx(), "echo outro > f.txt").repo;
+      const res = run(antes, "git switch -c nova f");
+      expect(res.ok).toBe(false);
+      expect(res.repo).toEqual(antes);
+      expect(res.repo.branches).not.toHaveProperty("nova");
+    });
+    it("git merge fast-forward continua recusando", () => {
+      const antes = run(fx(), "echo outro > f.txt").repo;
+      const res = run(antes, "git merge f");
+      expect(res.ok).toBe(false);
+      expect(res.repo).toEqual(antes);
+    });
+    it("não rastreado que não colide vai junto", () => {
+      const res = run(fx(), "echo u > u.txt", "git switch f");
+      expect(res.ok).toBe(true);
+      expect(G.status(res.repo).branch).toBe("f");
+      expect(G.status(res.repo).untracked).toEqual(["u.txt"]);
+    });
+  });
+
+  describe("arquivo novo em staging", () => {
+    it("que colide com o destino: recusa como alteração local", () => {
+      const antes = run(fx(), "echo meu > f.txt", "git add f.txt").repo;
+      const res = run(antes, "git switch f");
+      expect(res.ok).toBe(false);
+      expect(texto(res.lines)).toContain("alterações locais");
+      expect(texto(res.lines)).toContain("f.txt");
+      expect(res.repo).toEqual(antes);
+    });
+    it("que não colide: vai junto, ainda em staging", () => {
+      const res = run(fx(), "echo n > n.txt", "git add n.txt", "git switch f");
+      expect(res.ok).toBe(true);
+      expect(G.status(res.repo).branch).toBe("f");
+      expect(G.status(res.repo).staged).toEqual([{ path: "n.txt", kind: "new" }]);
+      expect(res.repo.workdir["f.txt"]).toBe("f\n");
+    });
+  });
+
+  describe("arquivo apagado da pasta sem git add", () => {
+    it("git switch aceita e traz a versão do destino, se ele mudou o arquivo", () => {
+      const res = run(xconf(), "rm x.txt", "git switch f");
+      expect(res.ok).toBe(true);
+      expect(G.status(res.repo).branch).toBe("f");
+      expect(res.repo.workdir["x.txt"]).toBe("F\n");
+      expect(G.isCleanRepo(res.repo)).toBe(true);
+    });
+    it("continua apagado se o destino tem a mesma versão", () => {
+      const res = run(fx(), "rm x.txt", "git switch f");
+      expect(res.ok).toBe(true);
+      expect(G.status(res.repo).branch).toBe("f");
+      expect(res.repo.workdir).not.toHaveProperty("x.txt");
+      expect(G.status(res.repo).unstaged).toEqual([{ path: "x.txt", kind: "deleted" }]);
+    });
+    it("some de vez se o destino também não tem o arquivo", () => {
+      const res = run(fsemb(), "rm b.txt", "git switch f");
+      expect(res.ok).toBe(true);
+      expect(res.repo.workdir).not.toHaveProperty("b.txt");
+      expect(G.isCleanRepo(res.repo)).toBe(true);
+    });
+    it("git merge fast-forward aceita e traz a versão do destino", () => {
+      const res = run(fxx(), "rm x.txt", "git merge f");
+      expect(res.ok).toBe(true);
+      expect(res.event).toBe("fast-forward");
+      expect(res.repo.workdir["x.txt"]).toBe("F\n");
+      expect(G.isCleanRepo(res.repo)).toBe(true);
+    });
+    it("git merge fast-forward: se o destino apaga também, fica limpo", () => {
+      const res = run(fsemb(), "rm b.txt", "git merge f");
+      expect(res.ok).toBe(true);
+      expect(G.isCleanRepo(res.repo)).toBe(true);
+    });
+    it("git merge de três vias aceita e traz a versão mesclada", () => {
+      const res = run(fxx(), "echo m > m.txt", "git add .", 'git commit -m "m"', "rm x.txt", "git merge f");
+      expect(res.ok).toBe(true);
+      expect(res.event).toBe("merge");
+      expect(res.repo.workdir["x.txt"]).toBe("F\n");
+      expect(G.isCleanRepo(res.repo)).toBe(true);
+    });
+    it("git merge de três vias mantém apagado o arquivo que o merge não toca", () => {
+      const res = run(fxx(), "echo m > m.txt", "git add .", 'git commit -m "m"', "rm b.txt", "git merge f");
+      expect(res.ok).toBe(true);
+      expect(res.event).toBe("merge");
+      expect(G.status(res.repo).unstaged).toEqual([{ path: "b.txt", kind: "deleted" }]);
+    });
+    it("git merge com conflito nesse arquivo: o conflito acontece normalmente", () => {
+      const res = run(xconf(), "rm x.txt", "git merge f");
+      expect(res.event).toBe("conflict");
+      expect(G.status(res.repo).conflicts).toEqual(["x.txt"]);
+      expect(res.repo.workdir["x.txt"]).toContain("<<<<<<<");
+    });
+  });
+
+  describe("o que continua recusado", () => {
+    it("arquivo apagado com git add, se o destino difere", () => {
+      for (const cmd of ["git switch f", "git merge f"]) {
+        const antes = run(xconf(), "git rm x.txt").repo;
+        const res = run(antes, cmd);
+        expect(res.ok).toBe(false);
+        expect(texto(res.lines)).toContain("x.txt");
+        expect(res.repo).toEqual(antes);
+      }
+    });
+    it("edição sem add em arquivo que o destino muda", () => {
+      const antes = run(xconf(), "echo meu > x.txt").repo;
+      const res = run(antes, "git switch f");
+      expect(res.ok).toBe(false);
+      expect(res.repo).toEqual(antes);
+    });
+  });
+
+  describe("o que continua aceito", () => {
+    it("edição sem add em arquivo que o destino não muda vai junto", () => {
+      const res = run(fx(), "echo y >> a.txt", "git switch f");
+      expect(res.ok).toBe(true);
+      expect(G.status(res.repo).branch).toBe("f");
+      expect(res.repo.workdir["a.txt"]).toBe("a\ny\n");
+      expect(G.status(res.repo).unstaged).toEqual([{ path: "a.txt", kind: "modified" }]);
+    });
+    it("edição com add em arquivo que o destino não muda vai junto, em staging", () => {
+      const res = run(fx(), "echo y >> a.txt", "git add a.txt", "echo z >> a.txt", "git switch f");
+      expect(res.ok).toBe(true);
+      expect(res.repo.workdir["a.txt"]).toBe("a\ny\nz\n");
+      expect(G.status(res.repo).staged).toEqual([{ path: "a.txt", kind: "modified" }]);
+      expect(G.status(res.repo).unstaged).toEqual([{ path: "a.txt", kind: "modified" }]);
+    });
+  });
+});
