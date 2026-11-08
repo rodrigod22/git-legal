@@ -45,6 +45,7 @@ O motor cobre os comandos do treinamento, não o Git inteiro:
 - As opções aceitas por subcomando estão na tabela `OPTIONS`, em `src/engine/commands.ts`. Com outras opções, as consultas (`status`, `log`, `diff`, `show`, `reflog`) avisam e mostram a saída padrão; os demais comandos avisam e não executam nada. O aviso não conta como erro do aluno nem cumpre objetivo.
 - `git config` não tem efeito: a identidade do repositório é fixa.
 - `git add` bloqueia arquivo com marcadores de conflito, como proteção didática. O Git real aceita.
+- `git cherry-pick` e `git revert` não têm `-m` nem `--skip`: commit de merge é recusado, e um cherry-pick que fica vazio se encerra com `--abort`.
 
 ## Próximos passos sugeridos
 
