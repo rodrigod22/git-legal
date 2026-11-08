@@ -2,12 +2,12 @@
 // Uso: node scripts/check-1b-impressao.mjs <pasta-de-saida> [chrome|msedge] [url]
 import { chromium } from "playwright-core";
 import path from "node:path";
-import { idsDasMissoes, progressoCompleto, dispensaVideo } from "./lib-missoes.mjs";
+import { idsDasMissoes, progressoCompleto, dispensaVideo, entraNoSite, argsDoChrome } from "./lib-missoes.mjs";
 
 const [outDir, channel = "chrome", url = "http://127.0.0.1:5199/"] = process.argv.slice(2);
-const browser = await chromium.launch({ channel, headless: true });
+const browser = await chromium.launch({ channel, headless: true, args: argsDoChrome() });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-await page.goto(url);
+await entraNoSite(page, url);
 // Os ids vêm do código-fonte, para o roteiro funcionar também contra o build de dist/.
 await page.evaluate((progress) => {
   localStorage.setItem("git-dojo-v1", JSON.stringify({ state: { playerName: "Maria Aparecida dos Santos Oliveira", progress, xp: 2931, badges: ["a", "b", "c"], totalCommands: 99, sound: false }, version: 0 }));

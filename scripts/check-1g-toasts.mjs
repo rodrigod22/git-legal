@@ -1,15 +1,15 @@
 // Item 3 da Etapa 1G: toasts dispensáveis pelo teclado, relógio parado com foco ou mouse em cima, e contraste do placeholder do nome.
 // Uso: node scripts/check-1g-toasts.mjs [url]  (padrão: http://127.0.0.1:5199/)
 import { chromium } from "playwright-core";
-import { dispensaVideo } from "./lib-missoes.mjs";
+import { dispensaVideo, entraNoSite, argsDoChrome } from "./lib-missoes.mjs";
 
 const url = process.argv[2] ?? "http://127.0.0.1:5199/";
 const results = [];
 const check = (nome, ok, detalhe = "") => results.push(`${ok ? "OK   " : "FALHA"} ${nome}${ok || !detalhe ? "" : " — " + detalhe}`);
 
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: argsDoChrome() });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-await page.goto(url);
+await entraNoSite(page, url);
 await page.evaluate(() => localStorage.clear());
 await page.reload();
 await page.waitForTimeout(800);

@@ -2,10 +2,11 @@
 // (Tab, Shift+Tab, Enter, Espaço e setas), conferindo foco visível e ordem de foco.
 // Uso: node scripts/check-1f-teclado.mjs <pasta-de-saida> [url]  (padrão: http://127.0.0.1:5199/)
 import { chromium } from "playwright-core";
+import { entraNoSite, argsDoChrome } from "./lib-missoes.mjs";
 import path from "node:path";
 
 const [outDir, url = "http://127.0.0.1:5199/"] = process.argv.slice(2);
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: argsDoChrome() });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
@@ -57,7 +58,7 @@ const digitar = async (cmd) => {
 };
 
 // Início: Tab até o campo do nome, digita e Enter
-await page.goto(url);
+await entraNoSite(page, url);
 await page.evaluate(() => localStorage.clear());
 await page.reload();
 await page.waitForTimeout(800);

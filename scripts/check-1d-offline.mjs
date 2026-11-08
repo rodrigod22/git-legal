@@ -3,15 +3,12 @@
 // Uso: node scripts/check-1d-offline.mjs <pasta-de-saida> [url]  (padrão: http://127.0.0.1:5198/git-dojo/)
 import { chromium } from "playwright-core";
 import path from "node:path";
-import { idsDasMissoes, progressoCompleto, dispensaVideo } from "./lib-missoes.mjs";
+import { idsDasMissoes, progressoCompleto, dispensaVideo, entraNoSite, argsDoChrome } from "./lib-missoes.mjs";
 
 const [outDir, url = "http://127.0.0.1:5198/git-dojo/"] = process.argv.slice(2);
 const base = new URL(url);
-// CHROME_ARGS permite, por exemplo, resolver um host sem DNS: --host-resolver-rules=MAP host ip
-const browser = await chromium.launch({ channel: "chrome", headless: true, args: process.env.CHROME_ARGS ? process.env.CHROME_ARGS.split(/ +(?=--)/) : [] });
-// DOJO_USUARIO e DOJO_SENHA atendem ao login do servidor publicado (auth_basic do Nginx).
-const credenciais = process.env.DOJO_USUARIO ? { httpCredentials: { username: process.env.DOJO_USUARIO, password: process.env.DOJO_SENHA ?? "" } } : {};
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, ...credenciais });
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: argsDoChrome() });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
 const bloqueadas = [];
 const foraDaBase = [];
@@ -31,12 +28,16 @@ await page.route("**/*", (route) => {
 page.on("requestfailed", (r) => {
   if (!ambiente.test(r.url())) falhas.push(`${r.url()} — ${r.failure()?.errorText}`);
 });
+// O Dojo pergunta em _auth/me se há sessão do site publicado (botão "Sair"); um servidor estático sem
+// login responde 404, o que é esperado e não conta como falha.
+const semLogin = (u, status) => status === 404 && /\/_auth\/me$/.test(new URL(u).pathname);
 page.on("response", (r) => {
-  if (r.status() >= 400) falhas.push(`${r.url()} — HTTP ${r.status()}`);
+  if (r.status() >= 400 && !semLogin(r.url(), r.status())) falhas.push(`${r.url()} — HTTP ${r.status()}`);
 });
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
 page.on("console", (m) => {
-  if (m.type() === "error" && !ambiente.test(m.location()?.url ?? "")) errors.push("console: " + m.text());
+  const origem = m.location()?.url ?? "";
+  if (m.type() === "error" && !ambiente.test(origem) && !(origem && semLogin(origem, 404) && /404/.test(m.text()))) errors.push("console: " + m.text());
 });
 
 const results = [];
@@ -58,7 +59,7 @@ const fontes = () =>
   });
 
 // Tela inicial
-await page.goto(url);
+await entraNoSite(page, url);
 await page.waitForTimeout(1200);
 check("tela inicial abre na subpasta", (await page.locator(".home").count()) === 1, page.url());
 await shot("1-home");
@@ -114,7 +115,7 @@ await page.waitForTimeout(800);
 check("certificado abre", /Teste Offline/.test(await page.locator("body").innerText()));
 await shot("5-certificado");
 
-check("nenhuma requisição fora de 127.0.0.1", bloqueadas.length === 0, bloqueadas.join(" | "));
+check(`nenhuma requisição fora de ${base.host}`, bloqueadas.length === 0, bloqueadas.join(" | "));
 check("todas as requisições ficaram dentro da subpasta", foraDaBase.length === 0, foraDaBase.join(" | "));
 check("nenhuma requisição falhou", falhas.length === 0, falhas.join(" | "));
 check("sem erros na página", errors.length === 0, errors.join(" | "));

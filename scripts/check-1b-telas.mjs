@@ -1,11 +1,12 @@
 // Valida na tela os itens 4, 5, 6, 7, 9 e 10 da Etapa 1B.
 // Uso: node scripts/check-1b-telas.mjs <pasta-de-saida> [url]
 import { chromium } from "playwright-core";
+import { entraNoSite, argsDoChrome } from "./lib-missoes.mjs";
 import path from "node:path";
 
 const outDir = process.argv[2];
 const url = process.argv[3] ?? "http://127.0.0.1:5199/";
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: argsDoChrome() });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
@@ -22,7 +23,7 @@ const type = async (cmd) => {
 };
 const term = () => page.locator(".terminal-out").innerText();
 
-await page.goto(url);
+await entraNoSite(page, url);
 await page.waitForTimeout(1200);
 const home = await page.locator(".home").innerText();
 check("home com 'Treinamento oficial' (conteúdo validado na Etapa 1C)", /Treinamento oficial/i.test(home));

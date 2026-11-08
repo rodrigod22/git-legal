@@ -6,7 +6,9 @@
 import { chromium } from "playwright-core";
 import fs from "node:fs";
 import path from "node:path";
-import { idsDasMissoes, progressoCompleto, dispensaVideo } from "./lib-missoes.mjs";
+import { idsDasMissoes, progressoCompleto, dispensaVideo, entraNoSite, argsDoChrome, abreTelaDeLogin } from "./lib-missoes.mjs";
+
+let telaDeLogin = "";
 
 const [outDir, url = "http://127.0.0.1:5199/"] = process.argv.slice(2);
 if (!outDir) {
@@ -22,7 +24,7 @@ const PERFIS = {
   "zoom200": { viewport: { width: 720, height: 450 }, deviceScaleFactor: 2 },
 };
 
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: argsDoChrome() });
 const resultados = [];
 const errosPagina = [];
 const check = (perfil, tela, nome, ok, detalhe = "") => resultados.push({ perfil, tela, nome, ok, detalhe });
@@ -97,8 +99,14 @@ for (const [perfil, opcoes] of Object.entries(PERFIS)) {
   };
   const nav = (re) => page.evaluate((src) => [...document.querySelectorAll("button")].find((b) => new RegExp(src).test(b.textContent) || new RegExp(src).test(b.getAttribute("aria-label") ?? ""))?.click(), re);
 
+  // 0. tela de login (Etapa 1H): a do site publicado, ou a cópia de deploy/login/ no Vite local
+  const paginaLogin = await context.newPage();
+  telaDeLogin = await abreTelaDeLogin(paginaLogin, url);
+  await medir(paginaLogin, perfil, "0-login");
+  await paginaLogin.close();
+
   // 1. início
-  await page.goto(url);
+  await entraNoSite(page, url);
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.waitForTimeout(3800);
@@ -177,6 +185,7 @@ for (const perfil of Object.keys(PERFIS)) {
     linhas.push(`${r.ok ? "OK   " : "FALHA"} ${r.tela}: ${r.nome}${r.ok ? "" : " — " + r.detalhe}`);
   }
 }
+linhas.push(`       tela de login auditada: ${telaDeLogin}`);
 linhas.push(`${errosPagina.length ? "FALHA" : "OK   "} sem erros na página${errosPagina.length ? " — " + errosPagina.join(" | ") : ""}`);
 linhas.push(`== ${resultados.length - falhas} OK · ${falhas} FALHA`);
 const texto = linhas.join("\n");

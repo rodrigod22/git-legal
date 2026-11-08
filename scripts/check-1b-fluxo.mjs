@@ -2,10 +2,10 @@
 // Uso: node scripts/check-1b-fluxo.mjs <pasta-de-saida> <chrome|msedge> <desktop|celular|celular-deitado> [url]
 import { chromium, devices } from "playwright-core";
 import path from "node:path";
-import { dispensaVideo } from "./lib-missoes.mjs";
+import { dispensaVideo, entraNoSite, argsDoChrome } from "./lib-missoes.mjs";
 
 const [outDir, channel = "chrome", formato = "desktop", url = "http://127.0.0.1:5199/"] = process.argv.slice(2);
-const browser = await chromium.launch({ channel, headless: true });
+const browser = await chromium.launch({ channel, headless: true, args: argsDoChrome() });
 const perfil = {
   desktop: { viewport: { width: 1440, height: 900 } },
   celular: devices["Pixel 7"],
@@ -53,7 +53,7 @@ const noViewport = (loc) =>
     return r.top >= 0 && r.bottom <= innerHeight + 1 && r.left >= 0 && r.right <= innerWidth + 1;
   });
 
-await page.goto(url);
+await entraNoSite(page, url);
 await page.evaluate(() => localStorage.clear());
 await page.reload();
 await page.waitForTimeout(800);

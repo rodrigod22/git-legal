@@ -5,7 +5,9 @@ import { chromium, devices } from "playwright-core";
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
-import { idsDasMissoes, progressoCompleto, dispensaVideo } from "./lib-missoes.mjs";
+import { idsDasMissoes, progressoCompleto, dispensaVideo, entraNoSite, argsDoChrome, abreTelaDeLogin } from "./lib-missoes.mjs";
+
+let telaDeLogin = "";
 
 const [outDir, url = "http://127.0.0.1:5199/"] = process.argv.slice(2);
 if (!outDir) {
@@ -23,7 +25,7 @@ const PERFIS = {
   celular: devices["Pixel 7"],
 };
 
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: argsDoChrome() });
 const resumo = {}; // perfil -> tela -> { critical, serious, moderate, minor, regras: [] }
 const errosPagina = [];
 
@@ -49,7 +51,8 @@ async function auditar(page, perfil, tela) {
 }
 
 for (const [perfil, opcoes] of Object.entries(PERFIS)) {
-  const context = await browser.newContext(opcoes);
+  // bypassCSP: o axe-core é injetado pelo roteiro; a CSP do site publicado barraria esse script inline.
+  const context = await browser.newContext({ ...opcoes, bypassCSP: true });
   const page = await context.newPage();
   page.on("pageerror", (e) => errosPagina.push(`${perfil}: pageerror: ${e.message}`));
   page.on("console", (m) => {
@@ -62,8 +65,14 @@ for (const [perfil, opcoes] of Object.entries(PERFIS)) {
     await page.waitForTimeout(180);
   };
 
+  // 0. tela de login (Etapa 1H): a do site publicado, ou a cópia de deploy/login/ no Vite local
+  const paginaLogin = await context.newPage();
+  telaDeLogin = await abreTelaDeLogin(paginaLogin, url);
+  await auditar(paginaLogin, perfil, "0-login");
+  await paginaLogin.close();
+
   // 1. início
-  await page.goto(url);
+  await entraNoSite(page, url);
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   // a demonstração do terminal entra linha a linha por uns 3 s; auditar antes acusaria contraste em texto ainda transparente
@@ -147,6 +156,7 @@ for (const [perfil, telas] of Object.entries(resumo)) {
   }
 }
 linhas.push(`== total: ${GRAVIDADES.map((g) => `${g} ${total[g]}`).join(" · ")}`);
+linhas.push(`       tela de login auditada: ${telaDeLogin}`);
 linhas.push(`${errosPagina.length ? "FALHA" : "OK   "} sem erros na página${errosPagina.length ? " — " + errosPagina.join(" | ") : ""}`);
 const texto = linhas.join("\n");
 fs.writeFileSync(path.join(outDir, "resumo.txt"), texto);

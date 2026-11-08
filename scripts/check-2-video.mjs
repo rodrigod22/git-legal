@@ -4,18 +4,16 @@
 // trilha, e que o vídeo de verdade toca quando a pessoa aperta "Assistir" (arquivo servido pelo Vite ou pelo build).
 // Uso: node scripts/check-2-video.mjs <pasta-de-saida> [url]  (padrão: http://127.0.0.1:5199/)
 import { chromium } from "playwright-core";
+import { entraNoSite, argsDoChrome } from "./lib-missoes.mjs";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 
 const [outDir, url = "http://127.0.0.1:5199/"] = process.argv.slice(2);
 const axeSource = readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
-// CHROME_ARGS permite, por exemplo, resolver um host sem DNS: --host-resolver-rules=MAP host ip
-const browser = await chromium.launch({ channel: "chrome", headless: true, args: process.env.CHROME_ARGS ? process.env.CHROME_ARGS.split(/ +(?=--)/) : [] });
-// DOJO_USUARIO e DOJO_SENHA atendem ao login do servidor publicado (auth_basic do Nginx).
-const credenciais = process.env.DOJO_USUARIO ? { httpCredentials: { username: process.env.DOJO_USUARIO, password: process.env.DOJO_SENHA ?? "" } } : {};
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: argsDoChrome() });
 // bypassCSP: o axe-core é injetado pelo roteiro; a CSP do servidor publicado barraria esse script inline.
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, bypassCSP: true, ...credenciais });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, bypassCSP: true });
 const errors = [];
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
 page.on("console", (m) => { if (m.type() === "error" && !/kaspersky/i.test(m.text())) errors.push("console: " + m.text()); });
@@ -24,7 +22,7 @@ const check = (nome, ok, extra = "") => { console.log((ok ? "OK   " : "FALHA") +
 const shot = (n) => page.screenshot({ path: path.join(outDir, n + ".png") });
 const dialog = () => page.locator(".intro[role=dialog]");
 
-await page.goto(url);
+await entraNoSite(page, url);
 await page.getByPlaceholder(/chamad/i).fill("Teste Vídeo");
 await page.getByRole("button", { name: /Começar/ }).click();
 await page.waitForSelector(".module");

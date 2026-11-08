@@ -3,10 +3,10 @@
 // Uso: node scripts/check-1f-movimento.mjs <pasta-de-saida> [url]  (padrão: http://127.0.0.1:5199/)
 import { chromium } from "playwright-core";
 import path from "node:path";
-import { dispensaVideo } from "./lib-missoes.mjs";
+import { dispensaVideo, entraNoSite, argsDoChrome } from "./lib-missoes.mjs";
 
 const [outDir, url = "http://127.0.0.1:5199/"] = process.argv.slice(2);
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: argsDoChrome() });
 const results = [];
 const check = (name, ok, detail = "") => results.push(`${ok ? "OK   " : "FALHA"} ${name}${detail ? " — " + detail : ""}`);
 
@@ -18,7 +18,7 @@ async function medir(reduce) {
   const m = { modo: reduce ? "reduzido" : "normal" };
 
   // tela inicial: as linhas da demonstração devem estar todas visíveis logo após a carga
-  await page.goto(url);
+  await entraNoSite(page, url);
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.waitForTimeout(250);

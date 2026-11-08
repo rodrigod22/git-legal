@@ -2,10 +2,11 @@
 // Uso: node scripts/check-1b3-mensagens.mjs <pasta-de-saida> [url]  (padrão: http://127.0.0.1:5199/)
 import path from "node:path";
 import { chromium } from "playwright-core";
+import { entraNoSite, argsDoChrome } from "./lib-missoes.mjs";
 
 const outDir = process.argv[2];
 const url = process.argv[3] ?? "http://127.0.0.1:5199/";
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: argsDoChrome() });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
@@ -23,7 +24,7 @@ const term = () => page.locator(".terminal-out").innerText();
 const clear = () => type("clear");
 const resumo = (t) => t.split("\n").slice(1, 4).join(" | ");
 
-await page.goto(url);
+await entraNoSite(page, url);
 await page.waitForTimeout(800);
 await page.fill("input[aria-label='Seu nome']", "Teste");
 await page.keyboard.press("Enter");

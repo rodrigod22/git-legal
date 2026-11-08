@@ -2,17 +2,17 @@
 // Não substitui um teste com leitor de tela real; confere a estrutura que o leitor vai ler.
 // Uso: node scripts/check-1f-leitor.mjs [url]  (padrão: http://127.0.0.1:5199/)
 import { chromium } from "playwright-core";
-import { dispensaVideo } from "./lib-missoes.mjs";
+import { dispensaVideo, entraNoSite, argsDoChrome } from "./lib-missoes.mjs";
 
 const [url = "http://127.0.0.1:5199/"] = process.argv.slice(2);
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: argsDoChrome() });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 const results = [];
 const check = (name, ok, detail = "") => results.push(`${ok ? "OK   " : "FALHA"} ${name}${detail ? " — " + detail : ""}`);
 
-await page.goto(url);
+await entraNoSite(page, url);
 await page.evaluate(() => localStorage.clear());
 await page.reload();
 await page.waitForTimeout(800);
