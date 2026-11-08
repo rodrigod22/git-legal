@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280, height=720" />
+    <!-- Projeto raiz: monta os seis vídeos em sequência (6 x 60 s) para `hyperframes check`, `snapshot` e `preview`.
+         Cada vídeo é renderizado sozinho com `hyperframes render -c compositions/<modulo>.html` (ferramentas/renderizar.mjs). -->
+    <style>
+      #root { position: relative; width: 1280px; height: 720px; overflow: hidden; background: #0a0e16; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-no-timeline data-start="0" data-duration="360" data-width="1280" data-height="720" data-fps="30">
+      <div id="m-fundamentos" class="clip" data-composition-id="fundamentos" data-composition-src="compositions/fundamentos.html" data-start="0" data-duration="60" data-track-index="0"></div>
+      <div id="m-branches" class="clip" data-composition-id="branches" data-composition-src="compositions/branches.html" data-start="60" data-duration="60" data-track-index="0"></div>
+      <div id="m-merge" class="clip" data-composition-id="merge" data-composition-src="compositions/merge.html" data-start="120" data-duration="60" data-track-index="0"></div>
+      <div id="m-conflitos" class="clip" data-composition-id="conflitos" data-composition-src="compositions/conflitos.html" data-start="180" data-duration="60" data-track-index="0"></div>
+      <div id="m-trunk" class="clip" data-composition-id="trunk" data-composition-src="compositions/trunk.html" data-start="240" data-duration="60" data-track-index="0"></div>
+      <div id="m-perigo" class="clip" data-composition-id="perigo" data-composition-src="compositions/perigo.html" data-start="300" data-duration="60" data-track-index="0"></div>
+    </div>
+  </body>
+</html>
