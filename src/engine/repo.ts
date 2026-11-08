@@ -591,6 +591,14 @@ export function merge(repo: Repo, ref: string, opts: { noFf?: boolean; message?:
 export function abortInProgress(repo: Repo, kind: InProgress["kind"]): Repo {
   if (!repo.inProgress || repo.inProgress.kind !== kind) throw new GitError(`fatal: não há ${kind} em andamento`);
   assertNoUntrackedCollision(repo, headTree(repo), `${kind} --abort`);
+  // como git reset --merge: arquivo em staging que foi editado depois do add seria perdido, então é recusado
+  const s = status(repo);
+  const stale = s.staged.map((f) => f.path).filter((p) => s.unstaged.some((f) => f.path === p));
+  if (stale.length) {
+    throw new GitError(
+      `erro: estes arquivos têm alteração em staging e outra feita depois do 'git add':\n${stale.map((p) => `\t${p}`).join("\n")}\nfatal: ${kind} --abort não é possível sem perder essa edição.\ndica: 'git add <arquivo>' para juntar as duas, ou 'git restore <arquivo>' para voltar ao que está em staging.`,
+    );
+  }
   const r = clone(repo);
   const head = headTree(r);
   // como git reset --merge: volta o que está em conflito ou na staging; o resto do trabalho local fica

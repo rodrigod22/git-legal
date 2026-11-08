@@ -1625,3 +1625,67 @@ describe("git rebase --continue com edição sem add", () => {
     expect(res.repo.workdir["x.txt"]).toBe("F\n");
   });
 });
+
+describe("--abort com arquivo adicionado e editado depois", () => {
+  const dois = () => run(G.createRepo({ user: "voce" }), "git init", "echo a > a.txt", "echo x > x.txt", "git add .", 'git commit -m "um"', "echo 2 > b.txt", "git add .", 'git commit -m "dois"').repo;
+  const texto = (lines: string[]) => lines.join("\n");
+  // merge parado: conflito em x.txt e em novo.txt, criado pelos dois lados
+  const mergeParado = () =>
+    run(dois(), "git switch -c f", "echo F > x.txt", "echo F > novo.txt", "git add .", 'git commit -m "F"', "git switch main", "echo M > x.txt", "echo M > novo.txt", "git add .", 'git commit -m "M"', "git merge f").repo;
+  const pickParado = () => run(dois(), "git switch -c f", "echo F > x.txt", "git add .", 'git commit -m "F"', "git switch main", "echo M > x.txt", "git add .", 'git commit -m "M"', "git cherry-pick f").repo;
+  const revertParado = () => run(dois(), "echo Z > b.txt", "git add .", 'git commit -m "z"', "git revert HEAD~1").repo;
+
+  it("git merge --abort recusa e nada muda", () => {
+    const antes = run(mergeParado(), "echo R > x.txt", "git add x.txt", "echo R2 > x.txt").repo;
+    const res = run(antes, "git merge --abort");
+    expect(res.ok).toBe(false);
+    expect(texto(res.lines)).toContain("x.txt");
+    expect(res.repo).toEqual(antes);
+    expect(res.repo.workdir["x.txt"]).toBe("R2\n");
+  });
+  it("recusa também quando é outro arquivo, fora do conflito", () => {
+    const antes = run(mergeParado(), "echo R >> a.txt", "git add a.txt", "echo R2 >> a.txt").repo;
+    const res = run(antes, "git merge --abort");
+    expect(res.ok).toBe(false);
+    expect(texto(res.lines)).toContain("a.txt");
+    expect(res.repo).toEqual(antes);
+  });
+  it("recusa arquivo novo em staging editado depois", () => {
+    const antes = run(mergeParado(), "echo n > n.txt", "git add n.txt", "echo n2 > n.txt").repo;
+    const res = run(antes, "git merge --abort");
+    expect(res.ok).toBe(false);
+    expect(res.repo.workdir["n.txt"]).toBe("n2\n");
+  });
+  it("git cherry-pick --abort e git revert --abort recusam", () => {
+    const pick = run(pickParado(), "echo R > x.txt", "git add x.txt", "echo R2 > x.txt").repo;
+    const res = run(pick, "git cherry-pick --abort");
+    expect(res.ok).toBe(false);
+    expect(res.repo).toEqual(pick);
+    const rev = run(revertParado(), "echo R > b.txt", "git add b.txt", "echo R2 > b.txt").repo;
+    const res2 = run(rev, "git revert --abort");
+    expect(res2.ok).toBe(false);
+    expect(res2.repo).toEqual(rev);
+  });
+
+  describe("o que continua aceito", () => {
+    it("conflito resolvido com add e nada mais: aborta e volta ao HEAD", () => {
+      const res = run(mergeParado(), "echo R > x.txt", "git add x.txt", "git merge --abort");
+      expect(res.ok).toBe(true);
+      expect(res.repo.inProgress).toBeNull();
+      expect(res.repo.workdir["x.txt"]).toBe("M\n");
+      expect(G.isCleanRepo(res.repo)).toBe(true);
+    });
+    it("arquivo em conflito editado sem add: aborta e descarta", () => {
+      const res = run(mergeParado(), "echo R > x.txt", "git merge --abort");
+      expect(res.ok).toBe(true);
+      expect(res.repo.workdir["x.txt"]).toBe("M\n");
+    });
+    it("edição sem add em arquivo fora do conflito: aborta e mantém", () => {
+      const res = run(mergeParado(), "echo sujo >> a.txt", "git merge --abort");
+      expect(res.ok).toBe(true);
+      expect(res.repo.inProgress).toBeNull();
+      expect(res.repo.workdir["a.txt"]).toBe("a\nsujo\n");
+      expect(G.status(res.repo).unstaged).toEqual([{ path: "a.txt", kind: "modified" }]);
+    });
+  });
+});
