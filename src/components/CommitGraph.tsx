@@ -131,7 +131,7 @@ export function CommitGraph({ repo }: { repo: Repo }) {
                 <text x={labelX - cx + 62} y={4} fill="#e6eaf2" fontFamily="var(--font)" fontSize={12.5}>
                   {truncate(n.message, 38)}
                 </text>
-                <text x={labelX - cx + 62} y={19} fill="#64748b" fontFamily="var(--font)" fontSize={10.5}>
+                <text x={labelX - cx + 62} y={19} fill="#7b8aa3" fontFamily="var(--font)" fontSize={10.5}>
                   {n.author}
                 </text>
                 {n.labels.map((l, i) => {

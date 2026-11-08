@@ -8,7 +8,8 @@
   --border-strong: #334155;
   --text: #e6eaf2;
   --muted: #94a3b8;
-  --muted-2: #64748b;
+  /* #7b8aa3 dá 4,66:1 sobre --surface-solid, o fundo mais claro; o #64748b antigo ficava em 3,4:1 */
+  --muted-2: #7b8aa3;
   --accent: #f05032;
   --accent-2: #ff7a59;
   --violet: #8b5cf6;
@@ -658,7 +659,7 @@ textarea {
 .terminal-in .ghost {
   position: absolute;
   pointer-events: none;
-  color: #475569;
+  color: var(--muted-2);
 }
 .t-r {
   color: #fb7185;
@@ -679,7 +680,7 @@ textarea {
   font-weight: 700;
 }
 .t-d {
-  color: #64748b;
+  color: var(--muted-2);
 }
 .suggest {
   display: flex;
