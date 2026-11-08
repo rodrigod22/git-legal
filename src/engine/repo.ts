@@ -781,14 +781,28 @@ export function rebaseAbort(repo: Repo): Repo {
 
 // ---------- reset / revert / cherry-pick ----------
 
+/**
+ * Como no Git real: `--mixed` e `--hard` encerram merge, revert e cherry-pick e tiram o conflito da staging;
+ * no `--mixed`, a pasta não muda, então os marcadores ficam. Um rebase parado continua, e segue do novo HEAD.
+ * `--soft` é recusado no meio de um merge ou com conflito.
+ */
 export function reset(repo: Repo, ref: string, mode: "soft" | "mixed" | "hard" = "mixed"): Repo {
   assertInit(repo);
+  if (mode === "soft" && (repo.inProgress?.kind === "merge" || repo.conflicts.length)) {
+    const what = repo.rebase ? "rebase" : (repo.inProgress?.kind ?? "merge");
+    throw new GitError(`fatal: não é possível fazer 'reset --soft' no meio de um ${what}.\ndica: 'git reset' tira o conflito da staging, e 'git ${what} --abort' desfaz tudo.`);
+  }
   const sha = resolve(repo, ref);
   const r = clone(repo);
   if (r.head.type === "branch") r.branches[r.head.name] = sha;
   else r.head = { type: "detached", sha };
+  if (r.rebase) r.rebase.head = sha;
   const tree = r.commits[sha].tree;
-  if (mode === "mixed") r.index = { ...tree };
+  if (mode === "mixed") {
+    r.index = { ...tree };
+    r.conflicts = [];
+    r.inProgress = null;
+  }
   if (mode === "hard") {
     replaceTracked(r, tree);
     r.inProgress = null;

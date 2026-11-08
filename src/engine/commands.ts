@@ -473,10 +473,18 @@ function runGit(repo: Repo, args: string[]): CommandResult {
         const lines = f.has("--mixed") ? ["<y>aviso: --mixed com arquivo está obsoleto. Use 'git reset -- <arquivo>'.</y>"] : [];
         return { repo: G.unstage(repo, paths, rev), lines, ok: true };
       }
-      if (!rev && mode === "mixed") return { repo: G.unstage(repo, []), lines: ["<d>Index restaurado (arquivos removidos da área de staging).</d>"], ok: true };
+      if (!rev && mode === "mixed" && !G.headSha(repo)) return { repo: G.unstage(repo, []), lines: ["<d>Index restaurado (arquivos removidos da área de staging).</d>"], ok: true };
       const r = G.reset(repo, rev ?? "HEAD", mode);
-      const lines = mode === "hard" ? [`HEAD is now at <y>${G.short(G.headSha(r)!)}</y> ${esc(r.commits[G.headSha(r)!].message)}`] : [];
-      return { repo: r, lines, ok: true, event: "reset" };
+      const lines = mode === "hard" ? [`HEAD is now at <y>${G.short(G.headSha(r)!)}</y> ${esc(r.commits[G.headSha(r)!].message)}`] : rev ? [] : ["<d>Index restaurado (arquivos removidos da área de staging).</d>"];
+      // como no Git real: o reset encerra merge, revert e cherry-pick, mas um rebase parado continua
+      const encerrado = repo.inProgress && !r.inProgress;
+      if (mode !== "hard" && repo.conflicts.length && repo.rebase) {
+        lines.push("<y>Conflito tirado da staging; o rebase continua parado.</y>", "<d>dica: os marcadores ficaram no arquivo. Edite, 'git add <arquivo>' e 'git rebase --continue' (ou 'git rebase --abort').</d>");
+      } else if (encerrado && mode !== "hard") {
+        lines.push(`<y>${esc(repo.inProgress!.kind)} encerrado pelo reset.</y>`);
+        if (repo.conflicts.length) lines.push("<d>dica: os marcadores de conflito ficaram nos arquivos. Edite-os e faça um commit comum, ou use 'git restore <arquivo>' para voltar ao HEAD.</d>");
+      }
+      return { repo: r, lines, ok: true, event: rev || mode !== "mixed" || encerrado ? "reset" : undefined };
     }
     case "revert": {
       const { f, pos } = flags(rest);

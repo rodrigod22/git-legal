@@ -1824,3 +1824,137 @@ describe("git rebase com commit que já está na base", () => {
     });
   });
 });
+
+// ---------- Etapa 1B4 ----------
+
+const dois1b4 = () => run(G.createRepo({ user: "voce" }), "git init", "echo a > a.txt", "echo x > x.txt", "git add .", 'git commit -m "um"', "echo 2 > b.txt", "git add .", 'git commit -m "dois"').repo;
+const texto1b4 = (lines: string[]) => lines.join("\n").replace(/<\/?\w>/g, "").replace(/&lt;/g, "<");
+const mensagens1b4 = (r: Repo) => G.log(r).map((e) => e.commit.message.split("\n")[0]);
+// f e main divergem em x.txt (F / M); estamos em main
+const xconf1b4 = () => run(dois1b4(), "git switch -c f", "echo F > x.txt", "git add .", 'git commit -m "F"', "git switch main", "echo M > x.txt", "git add .", 'git commit -m "M"').repo;
+// merge parado: conflito em x.txt e em novo.txt, criado pelos dois lados
+const mergeParado1b4 = () =>
+  run(dois1b4(), "git switch -c f", "echo F > x.txt", "echo F > novo.txt", "git add .", 'git commit -m "F"', "git switch main", "echo M > x.txt", "echo M > novo.txt", "git add .", 'git commit -m "M"', "git merge f").repo;
+const pickParado1b4 = () => run(xconf1b4(), "git cherry-pick f").repo;
+const revertParado1b4 = () => run(dois1b4(), "echo Z > x.txt", "git add .", 'git commit -m "z"', "echo Z2 > x.txt", "git add .", 'git commit -m "z2"', "git revert HEAD~1").repo;
+// rebase de f sobre main parado em x.txt; f ainda tem o commit P depois
+const rebaseParado1b4 = () => run(dois1b4(), "git switch -c f", "echo F > x.txt", "git add .", 'git commit -m "F"', "echo p > p.txt", "git add .", 'git commit -m "P"', "git switch main", "echo M > x.txt", "git add .", 'git commit -m "M"', "git switch f", "git rebase main").repo;
+
+describe("N5: git reset sem arquivo durante um conflito", () => {
+  const encerrado = (r: Repo) => {
+    expect(r.inProgress).toBeNull();
+    expect(r.conflicts).toEqual([]);
+    expect(r.index).toEqual(G.headTree(r));
+  };
+
+  it("git reset encerra o merge e tira o conflito da staging, mas os marcadores ficam na pasta", () => {
+    const antes = mergeParado1b4();
+    const res = run(antes, "git reset");
+    expect(res.ok).toBe(true);
+    encerrado(res.repo);
+    expect(res.repo.workdir["x.txt"]).toBe(antes.workdir["x.txt"]);
+    expect(res.repo.workdir["x.txt"]).toContain("<<<<<<<");
+    const s = G.status(res.repo);
+    expect(s.unstaged.map((f) => f.path)).toEqual(["novo.txt", "x.txt"]);
+    expect(s.staged).toEqual([]);
+    expect(texto1b4(res.lines)).toContain("merge encerrado");
+    expect(res.event).toBe("reset");
+  });
+  it("git reset HEAD faz o mesmo", () => {
+    const res = run(mergeParado1b4(), "git reset HEAD");
+    expect(res.ok).toBe(true);
+    encerrado(res.repo);
+    expect(G.status(res.repo).unstaged.map((f) => f.path)).toEqual(["novo.txt", "x.txt"]);
+  });
+  it("git reset HEAD~1 move a branch, encerra o merge e deixa novo.txt como não rastreado", () => {
+    const antes = mergeParado1b4();
+    const res = run(antes, "git reset HEAD~1");
+    expect(res.ok).toBe(true);
+    encerrado(res.repo);
+    expect(res.repo.branches.main).toBe(antes.commits[antes.branches.main].parents[0]);
+    const s = G.status(res.repo);
+    expect(s.untracked).toEqual(["novo.txt"]);
+    expect(s.unstaged.map((f) => f.path)).toEqual(["x.txt"]);
+  });
+  it("encerra também cherry-pick e revert", () => {
+    for (const antes of [pickParado1b4(), revertParado1b4()]) {
+      const res = run(antes, "git reset");
+      expect(res.ok).toBe(true);
+      encerrado(res.repo);
+      expect(res.repo.workdir["x.txt"]).toContain("<<<<<<<");
+    }
+  });
+  it("depois do reset, o commit do arquivo arrumado é um commit comum, com um pai só", () => {
+    const res = run(mergeParado1b4(), "git reset", "echo R > x.txt", "echo R > novo.txt", "git add .", 'git commit -m "fim"');
+    expect(res.ok).toBe(true);
+    expect(res.repo.commits[res.repo.branches.main].parents).toHaveLength(1);
+  });
+  it("com o conflito já resolvido e outro arquivo em staging, o reset tira tudo e encerra o merge", () => {
+    const res = run(mergeParado1b4(), "echo R > x.txt", "git add x.txt", "echo s >> a.txt", "git add a.txt", "git reset");
+    encerrado(res.repo);
+    expect(G.status(res.repo).unstaged.map((f) => f.path)).toEqual(["a.txt", "novo.txt", "x.txt"]);
+    expect(res.repo.workdir["x.txt"]).toBe("R\n");
+  });
+  it("git reset --soft é recusado no meio de um merge ou com conflito", () => {
+    for (const antes of [mergeParado1b4(), pickParado1b4(), revertParado1b4(), rebaseParado1b4()]) {
+      for (const cmd of ["git reset --soft", "git reset --soft HEAD~1"]) {
+        const res = run(antes, cmd);
+        expect(res.ok).toBe(false);
+        expect(texto1b4(res.lines)).toContain("--soft");
+        expect(res.repo).toEqual(antes);
+      }
+    }
+  });
+
+  describe("durante um rebase", () => {
+    it("tira o conflito da staging, mas o rebase continua parado", () => {
+      const res = run(rebaseParado1b4(), "git reset");
+      expect(res.ok).toBe(true);
+      expect(res.repo.rebase).not.toBeNull();
+      expect(res.repo.conflicts).toEqual([]);
+      expect(res.repo.workdir["x.txt"]).toContain("<<<<<<<");
+      expect(G.status(res.repo).unstaged.map((f) => f.path)).toEqual(["x.txt"]);
+      expect(texto1b4(res.lines)).toContain("rebase continua");
+    });
+    it("o --continue é recusado até o add, e depois conclui com o commit", () => {
+      const reset = run(rebaseParado1b4(), "git reset").repo;
+      const recusa = run(reset, "git rebase --continue");
+      expect(recusa.ok).toBe(false);
+      const fim = run(reset, "echo FM > x.txt", "git add x.txt", "git rebase --continue");
+      expect(fim.ok).toBe(true);
+      expect(mensagens1b4(fim.repo)).toEqual(["P", "F", "M", "dois", "um"]);
+      expect(fim.repo.rebase).toBeNull();
+    });
+    it("git reset --hard HEAD~1 move o ponto onde o rebase continua, como no Git real", () => {
+      const res = run(rebaseParado1b4(), "git reset --hard HEAD~1", "git rebase --continue");
+      expect(res.ok).toBe(true);
+      expect(mensagens1b4(res.repo)).toEqual(["P", "dois", "um"]);
+      expect(G.status(res.repo).branch).toBe("f");
+    });
+    it("git reset HEAD~1, add e --continue aplicam o commit parado sobre o novo HEAD", () => {
+      const res = run(rebaseParado1b4(), "git reset HEAD~1", "echo FM > x.txt", "git add x.txt", "git rebase --continue");
+      expect(res.ok).toBe(true);
+      expect(mensagens1b4(res.repo)).toEqual(["P", "F", "dois", "um"]);
+    });
+  });
+
+  describe("o que continua igual", () => {
+    it("git reset sem conflito só limpa a staging, sem aviso de operação encerrada", () => {
+      const res = run(dois1b4(), "echo y >> a.txt", "git add .", "git reset");
+      expect(res.ok).toBe(true);
+      expect(G.status(res.repo).staged).toEqual([]);
+      expect(G.status(res.repo).unstaged.map((f) => f.path)).toEqual(["a.txt"]);
+      expect(texto1b4(res.lines)).not.toContain("encerrado");
+    });
+    it("git reset --hard continua encerrando o merge e limpando a pasta", () => {
+      const res = run(mergeParado1b4(), "git reset --hard HEAD");
+      encerrado(res.repo);
+      expect(G.isCleanRepo(res.repo)).toBe(true);
+    });
+    it("git reset HEAD arquivo tira só o arquivo do conflito e mantém o merge", () => {
+      const res = run(mergeParado1b4(), "git reset HEAD x.txt");
+      expect(res.repo.inProgress?.kind).toBe("merge");
+      expect(res.repo.conflicts).toEqual(["novo.txt"]);
+    });
+  });
+});
