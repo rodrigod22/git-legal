@@ -23,9 +23,11 @@ npm run build    # gera dist/ (estático)
 
 ## Publicar
 
-O build é estático (`dist/`). Basta copiar a pasta para qualquer servidor web — no WAMP, por exemplo, para `C:\wamp64\www\git-dojo` e abrir `http://localhost/git-dojo/`. O `base: "./"` no Vite permite servir de qualquer subpasta.
+O build é estático (`dist/`). Basta copiar a pasta inteira para qualquer servidor web — no WAMP, por exemplo, para `C:\wamp64\www\git-dojo` e abrir `http://localhost/git-dojo/`. O `base: "./"` no Vite permite servir de qualquer subpasta; isso foi conferido servindo `dist/` como `/git-dojo/` em um servidor estático comum.
 
-O progresso fica no `localStorage` do navegador de cada aluno.
+O Dojo não depende de nada fora do servidor: as fontes Inter e JetBrains Mono vão dentro de `dist/assets/`, então funciona em rede sem acesso à internet. As licenças das fontes (SIL Open Font License) ficam em `dist/licencas/` e devem ser publicadas junto.
+
+O progresso fica no `localStorage` do navegador de cada aluno, por endereço do site: mudar a subpasta zera o progresso de todo mundo.
 
 ## Criar ou editar missões
 
