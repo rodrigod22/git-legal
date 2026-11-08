@@ -172,6 +172,10 @@ textarea {
   background: rgba(255, 255, 255, 0.05);
   color: var(--text);
 }
+/* link com cara de botão (o "Sair" da barra do topo) */
+a.btn {
+  text-decoration: none;
+}
 .btn-sm {
   padding: 6px 10px;
   font-size: 13px;

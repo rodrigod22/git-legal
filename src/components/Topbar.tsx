@@ -1,11 +1,14 @@
-import { GitBranch, Map, Award, BookOpen, Volume2, VolumeX, FlaskConical } from "lucide-react";
+import { GitBranch, Map, Award, BookOpen, Volume2, VolumeX, FlaskConical, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import { useStore } from "@/state/store";
 import { levelFor } from "@/content/gamification";
+import { useSessaoDoSite } from "@/lib/useSessaoDoSite";
 
 export function Topbar() {
   const { view, go, xp, badges, sound, toggleSound, playerName, startPlayground } = useStore();
   const lv = levelFor(xp);
+  // Só no site publicado, com sessão aberta pela tela de login; no Vite local não aparece.
+  const usuarioDoSite = useSessaoDoSite();
   return (
     <header className="topbar">
       <button className="brand" onClick={() => go(playerName ? "map" : "home")} title="Início">
@@ -49,6 +52,11 @@ export function Topbar() {
             </button>
           </nav>
         </>
+      )}
+      {usuarioDoSite && (
+        <a className="btn btn-ghost btn-sm" href="_auth/logout" title={`Sair (entrou como ${usuarioDoSite})`}>
+          <LogOut size={15} aria-hidden="true" /> <span className="nav-label">Sair</span>
+        </a>
       )}
     </header>
   );
