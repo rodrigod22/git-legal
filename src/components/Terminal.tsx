@@ -57,6 +57,19 @@ export function Terminal() {
   const history = useMemo(() => session?.commands ?? [], [session]);
   const prompt = session ? promptFor(session.repo) : "projeto-rpa";
 
+  // Para leitores de tela: só a saída do último comando, anunciada uma vez, sem reler o histórico.
+  const ultimaSaida = useMemo(() => {
+    const lines = session?.lines ?? [];
+    let i = lines.length - 1;
+    while (i >= 0 && lines[i].kind !== "input") i--;
+    const texto = lines
+      .slice(i + 1)
+      .map((l) => l.text.replace(/<\/?[rgycmbd]>/g, "").replace(/&lt;/g, "<"))
+      .join("\n");
+    // a chave troca a cada comando, para o leitor anunciar de novo mesmo quando a saída se repete
+    return { key: lines[i]?.id ?? -1, texto: lines.length === 0 ? "" : texto || "comando executado, sem saída" };
+  }, [session?.lines]);
+
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     outRef.current?.scrollTo({ top: outRef.current.scrollHeight, behavior: reduce ? "auto" : "smooth" });
@@ -165,6 +178,9 @@ export function Terminal() {
             )}
           </div>
         ))}
+      </div>
+      <div className="sr-only" aria-live="polite" aria-atomic="true" data-testid="saida-leitor">
+        <div key={ultimaSaida.key}>{ultimaSaida.texto}</div>
       </div>
       {suggestions.length > 0 && (
         <div className="suggest">
