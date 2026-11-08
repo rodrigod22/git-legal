@@ -31,11 +31,24 @@ npm run check:offline -- "$env:TEMP\git-dojo-check" http://gitdojo.rpatecnologia
 npm run check:video   -- "$env:TEMP\git-dojo-check" http://gitdojo.rpatecnologia.com.br/
 ```
 
-O primeiro bloqueia toda requisição fora do host do Dojo e confere fontes, telas e `localStorage`; o segundo confere a janela do vídeo de abertura e os arquivos de vídeo servidos. Enquanto o DNS não existir, defina `CHROME_ARGS` para o Chrome resolver o nome direto no IP:
+O primeiro bloqueia toda requisição fora do host do Dojo e confere fontes, telas e `localStorage`; o segundo confere a janela do vídeo de abertura e os arquivos de vídeo servidos. Os dois leem o login do site de `DOJO_USUARIO` e `DOJO_SENHA`. Enquanto o DNS não existir, defina `CHROME_ARGS` para o Chrome resolver o nome direto no IP:
 
 ```powershell
+$env:DOJO_USUARIO = "rodrigo"; $env:DOJO_SENHA = "<senha>"
 $env:CHROME_ARGS = "--host-resolver-rules=MAP gitdojo.rpatecnologia.com.br 169.58.43.129"
 ```
+
+Os outros roteiros de `scripts/` ainda assumem o servidor de desenvolvimento em `127.0.0.1:5199` e não leem essas variáveis.
+
+## Logins
+
+Um usuário por dev, em `/etc/nginx/gitdojo.htpasswd` (dono `root`, grupo `www-data`, permissão 640). O primeiro, `rodrigo`, foi criado em 08/11/2026. Para incluir ou trocar a senha de alguém, na VPS:
+
+```bash
+echo "login:$(openssl passwd -apr1)" | sudo tee -a /etc/nginx/gitdojo.htpasswd   # pede a senha duas vezes
+```
+
+Para remover, apague a linha do arquivo com `sudo nano /etc/nginx/gitdojo.htpasswd`. Não precisa recarregar o Nginx. O progresso de cada pessoa continua no navegador dela, não na conta.
 
 ## Instalar do zero (feito em 08/11/2026)
 

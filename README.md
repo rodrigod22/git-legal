@@ -24,7 +24,9 @@ npm run build    # gera dist/ (estático)
 
 ## Publicar
 
-O build é estático (`dist/`). Basta copiar a pasta inteira para qualquer servidor web — no WAMP, por exemplo, para `C:\wamp64\www\git-dojo` e abrir `http://localhost/git-dojo/`. O `base: "./"` no Vite permite servir de qualquer subpasta; isso foi conferido servindo `dist/` como `/git-dojo/` em um servidor estático comum.
+O Dojo está publicado na VPS da empresa, em `http://gitdojo.rpatecnologia.com.br`, com login e senha por dev (autenticação básica do Nginx). Publicar é `git push production master`: um hook no servidor faz o build e sincroniza `dist/`. Como cadastrar devs, ligar o HTTPS e conferir o site publicado está em [deploy/README.md](deploy/README.md).
+
+Fora desse servidor, o build é estático (`dist/`). Basta copiar a pasta inteira para qualquer servidor web — no WAMP, por exemplo, para `C:\wamp64\www\git-dojo` e abrir `http://localhost/git-dojo/`. O `base: "./"` no Vite permite servir de qualquer subpasta; isso foi conferido servindo `dist/` como `/git-dojo/` em um servidor estático comum.
 
 O Dojo não depende de nada fora do servidor: as fontes Inter e JetBrains Mono vão dentro de `dist/assets/`, então funciona em rede sem acesso à internet. As licenças das fontes (SIL Open Font License) ficam em `dist/licencas/` e devem ser publicadas junto.
 
@@ -69,6 +71,6 @@ O motor cobre os comandos do treinamento, não o Git inteiro:
 
 ## Próximos passos
 
-- Publicar `dist/` numa subpasta definitiva da intranet e rodar o piloto com um grupo de estagiários e devs.
+- Criar o DNS de `gitdojo.rpatecnologia.com.br`, ligar o HTTPS e cadastrar o login de cada dev (ver `deploy/README.md`); depois, o piloto, aberto e opcional.
 - Narração nos vídeos de abertura (o texto de cada uma já está nos roteiros da Fase 2).
 - Backend Laravel com ranking da empresa (o store já isola o progresso em `progress`/`xp`/`badges`).

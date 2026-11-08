@@ -8,7 +8,7 @@ import { idsDasMissoes, progressoCompleto, dispensaVideo } from "./lib-missoes.m
 const [outDir, url = "http://127.0.0.1:5198/git-dojo/"] = process.argv.slice(2);
 const base = new URL(url);
 // CHROME_ARGS permite, por exemplo, resolver um host sem DNS: --host-resolver-rules=MAP host ip
-const browser = await chromium.launch({ channel: "chrome", headless: true, args: process.env.CHROME_ARGS ? process.env.CHROME_ARGS.split(" ") : [] });
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: process.env.CHROME_ARGS ? process.env.CHROME_ARGS.split(/ +(?=--)/) : [] });
 // DOJO_USUARIO e DOJO_SENHA atendem ao login do servidor publicado (auth_basic do Nginx).
 const credenciais = process.env.DOJO_USUARIO ? { httpCredentials: { username: process.env.DOJO_USUARIO, password: process.env.DOJO_SENHA ?? "" } } : {};
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, ...credenciais });

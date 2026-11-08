@@ -11,10 +11,11 @@ import { createRequire } from "node:module";
 const [outDir, url = "http://127.0.0.1:5199/"] = process.argv.slice(2);
 const axeSource = readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 // CHROME_ARGS permite, por exemplo, resolver um host sem DNS: --host-resolver-rules=MAP host ip
-const browser = await chromium.launch({ channel: "chrome", headless: true, args: process.env.CHROME_ARGS ? process.env.CHROME_ARGS.split(" ") : [] });
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: process.env.CHROME_ARGS ? process.env.CHROME_ARGS.split(/ +(?=--)/) : [] });
 // DOJO_USUARIO e DOJO_SENHA atendem ao login do servidor publicado (auth_basic do Nginx).
 const credenciais = process.env.DOJO_USUARIO ? { httpCredentials: { username: process.env.DOJO_USUARIO, password: process.env.DOJO_SENHA ?? "" } } : {};
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, ...credenciais });
+// bypassCSP: o axe-core é injetado pelo roteiro; a CSP do servidor publicado barraria esse script inline.
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, bypassCSP: true, ...credenciais });
 const errors = [];
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
 page.on("console", (m) => { if (m.type() === "error" && !/kaspersky/i.test(m.text())) errors.push("console: " + m.text()); });
@@ -103,8 +104,9 @@ await page.keyboard.press("Escape");
 const faltando = [];
 for (const m of ["fundamentos", "branches", "merge", "conflitos", "trunk", "perigo"]) {
   for (const ext of ["mp4", "vtt", "jpg"]) {
-    const r = await page.request.get(new URL("videos/" + m + "." + ext, url).toString());
-    if (!r.ok()) faltando.push(m + "." + ext + " " + r.status());
+    // fetch dentro da página: passa pelo Chrome (host-resolver-rules e login do servidor), ao contrário de page.request.
+    const r = await page.evaluate(async (u) => { const x = await fetch(u, { method: "HEAD" }); return { ok: x.ok, status: x.status }; }, new URL("videos/" + m + "." + ext, url).toString());
+    if (!r.ok) faltando.push(m + "." + ext + " " + r.status);
   }
 }
 check("arquivos: 18 arquivos de vídeo, legenda e poster servidos", faltando.length === 0, faltando.join(", "));
