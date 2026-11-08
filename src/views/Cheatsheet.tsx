@@ -1,5 +1,16 @@
 const SECTIONS: { title: string; rows: [string, string][] }[] = [
   {
+    title: "Regras do fluxo da RPA",
+    rows: [
+      ["Onde commitar", "direto na main, em commits pequenos, várias vezes por dia"],
+      ["Branch local", "opcional: quem preferir trabalha numa branch curta e integra no mesmo dia"],
+      ["Mensagem de correção", "começa com fix: (ex.: fix: porta do banco)"],
+      ["Antes do push", "git pull --rebase, para manter o histórico linear"],
+      ["Proibido na main", "push --force e reset: a main está na máquina de todo mundo; use revert"],
+      ["Onde fica", "GitHub, sem Pull Request"],
+    ],
+  },
+  {
     title: "Começando",
     rows: [
       ["git init", "transforma a pasta em repositório"],
