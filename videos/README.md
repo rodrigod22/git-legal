@@ -31,6 +31,10 @@ npm run render -- trunk --so-checar   # só lint, check e capturas
 npm run preview                  # estúdio do HyperFrames no navegador, com o index.html
 ```
 
+Para conferir os MP4 prontos (duração, resolução, codecs, peso e reprodução com áudio no Chrome): `npm run conferir`.
+
+Um render de 60 s leva de 2 a 6 minutos nesta máquina; não rode dois ao mesmo tempo. Se um render for interrompido, confira se `index.html` voltou ao original (`git status index.html`), porque a ferramenta o reescreve durante o `check`.
+
 Na raiz do Dojo, depois do render: `npx vite-node scripts/gerar-legendas.ts` (se as deixas mudaram), `npm test` (o teste `videos.test.ts` confere arquivos, tamanhos e legendas) e `npm run build`.
 
 ## Regras de produção
@@ -40,5 +44,5 @@ Na raiz do Dojo, depois do render: `npx vite-node scripts/gerar-legendas.ts` (se
 - Sem CDN: GSAP, fontes e áudio são locais. Sem template literal em `querySelector` (o lint recusa).
 - O `#root` de cada composição precisa da regra de posição e tamanho inline, no `<style>` da própria composição (o lint recusa a regra vinda de arquivo externo).
 - Cada `<audio>` tem `id`, `class="clip"`, `data-start`, `data-duration`, `data-volume` e `data-hf-media-start-basis="local"`. Música em `data-track-index="1"`, efeitos em `2`.
-- Qualidade: CRF 24 (cerca de 1,2 a 1,6 MB por vídeo). Para a qualidade padrão do HyperFrames, `--crf 16`.
+- Qualidade: CRF 24, cerca de 3 MB por vídeo (o zoom do fundo e as partículas mudam a tela inteira a cada quadro). O teste `src/content/videos.test.ts` fixa o teto em 4 MB. Para a qualidade padrão do HyperFrames, `--crf 16`.
 - Sem voz nesta fase. O texto que uma narração diria está na coluna "Narração" dos roteiros em `analises/fase2-roteiro-<modulo>.md`.

@@ -28,6 +28,8 @@ O build é estático (`dist/`). Basta copiar a pasta inteira para qualquer servi
 
 O Dojo não depende de nada fora do servidor: as fontes Inter e JetBrains Mono vão dentro de `dist/assets/`, então funciona em rede sem acesso à internet. As licenças das fontes (SIL Open Font License) ficam em `dist/licencas/` e devem ser publicadas junto.
 
+Os vídeos de abertura também vão no build, em `dist/videos/` (cerca de 19 MB nos seis, de um total de 20 MB). O servidor precisa entregar `.mp4` como `video/mp4` e aceitar requisições `Range`, o que qualquer Apache ou Nginx padrão faz.
+
 O progresso fica no `localStorage` do navegador de cada aluno, por endereço do site: mudar a subpasta zera o progresso de todo mundo.
 
 ## Criar ou editar missões
@@ -38,15 +40,16 @@ Cada missão é um objeto em `src/content/modules/*.ts`:
 - `objectives[]` são funções `check(ctx)` sobre o repositório, o histórico de comandos e os commits exibidos com `git show` (`ctx.shown`).
 - `triggers[]` simulam colegas (ex.: Ana faz push quando você commita).
 
-### Vídeos de abertura
+Depois de criar uma missão, adicione a solução em `src/content/missions.test.ts` — o teste garante que ela é resolvível com os comandos ensinados. Outro teste confere se os comandos citados nos textos e na cola funcionam sem aviso de opção não suportada.
 
-Cada módulo tem um vídeo de 60 s, sem voz, com música e efeitos, que abre antes da primeira missão do módulo (botão "Pular" sempre à mão) e pode ser revisto pela trilha. Os MP4 (1280×720, cerca de 1,5 MB cada), as legendas `.vtt` e os pôsteres ficam em `public/videos/` e só são baixados quando a pessoa aperta "Assistir" (`preload="none"`). A transcrição em texto fica no próprio player. Os vídeos são páginas HTML animadas, renderizadas localmente com o HyperFrames; a produção está documentada em [`videos/README.md`](videos/README.md) e as deixas das legendas em `src/content/videos.ts`.
+## Vídeos de abertura
 
-### Roteiros de navegador
+Cada módulo tem um vídeo de 60 s, sem voz, com música e efeitos, que abre antes da primeira missão do módulo (botão "Pular" sempre à mão) e pode ser revisto pela trilha. Os MP4 (1280×720, cerca de 3 MB cada), as legendas `.vtt` e os pôsteres ficam em `public/videos/` e só são baixados quando a pessoa aperta "Assistir" (`preload="none"`). A transcrição em texto fica no próprio player. Os vídeos são páginas HTML animadas, renderizadas localmente com o HyperFrames; a produção está documentada em [`videos/README.md`](videos/README.md) e as deixas das legendas em `src/content/videos.ts`.
+
+## Roteiros de verificação
 
 Além do `npm test`, a pasta [`scripts/`](scripts/README.md) tem roteiros que abrem o Dojo no Chrome com `playwright-core` e conferem telas, acessibilidade (`axe-core`), reflow, teclado e o build servido de subpasta, além de dois roteiros que comparam o motor com o Git real. Cada um está descrito em `scripts/README.md`, com o atalho `npm run check:<nome> -- <pasta-de-saída>`.
 
-Depois de criar uma missão, adicione a solução em `src/content/missions.test.ts` — o teste garante que ela é resolvível com os comandos ensinados. Outro teste confere se os comandos citados nos textos e na cola funcionam sem aviso de opção não suportada.
 
 ## Acessibilidade
 
@@ -64,7 +67,8 @@ O motor cobre os comandos do treinamento, não o Git inteiro:
 - `git add` bloqueia arquivo com marcadores de conflito, como proteção didática. O Git real aceita.
 - `git cherry-pick` e `git revert` não têm `-m` nem `--skip`: commit de merge é recusado, e um cherry-pick que fica vazio se encerra com `--abort`.
 
-## Próximos passos sugeridos
+## Próximos passos
 
+- Publicar `dist/` numa subpasta definitiva da intranet e rodar o piloto com um grupo de estagiários e devs.
+- Narração nos vídeos de abertura (o texto de cada uma já está nos roteiros da Fase 2).
 - Backend Laravel com ranking da empresa (o store já isola o progresso em `progress`/`xp`/`badges`).
-- ~~Vídeos de abertura dos módulos com HyperFrames.~~ Feito na Fase 2 (seção "Vídeos de abertura"). Voz nos vídeos fica para uma fase seguinte.
