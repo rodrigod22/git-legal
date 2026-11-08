@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { X, Save, Check } from "lucide-react";
 import { useStore } from "@/state/store";
+import { useDialog } from "@/lib/useDialog";
 
 interface Hunk {
   index: number;
@@ -45,12 +46,20 @@ function resolveHunk(text: string, h: Hunk, choice: "ours" | "theirs" | "both"):
 
 export function Editor() {
   const path = useStore((s) => s.editorPath);
+  return path ? <EditorDialog path={path} /> : null;
+}
+
+function EditorDialog({ path }: { path: string }) {
   const session = useStore((s) => s.session);
   const openEditor = useStore((s) => s.openEditor);
   const saveFile = useStore((s) => s.saveFile);
-  const original = path ? session?.repo.workdir[path] ?? "" : "";
+  const original = session?.repo.workdir[path] ?? "";
   const [text, setText] = useState(original);
   const [saved, setSaved] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  const close = () => openEditor(null);
+  useDialog(dialogRef, { onClose: close, initialFocus: textRef });
 
   useEffect(() => {
     setText(original);
@@ -58,9 +67,7 @@ export function Editor() {
   }, [path, original]);
 
   const hunks = useMemo(() => parseHunks(text), [text]);
-  const isConflict = !!path && (session?.repo.conflicts.includes(path) ?? false);
-
-  if (!path) return null;
+  const isConflict = session?.repo.conflicts.includes(path) ?? false;
 
   const save = (close = false) => {
     saveFile(path, text);
@@ -69,21 +76,23 @@ export function Editor() {
   };
 
   return (
-    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && openEditor(null)}>
-      <motion.div className="card editor" initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}>
+    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && close()}>
+      <motion.div ref={dialogRef} className="card editor" role="dialog" aria-modal="true" aria-label={`Editor: ${path}`} initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}>
         <div className="editor-head">
-          <span className="pill">✎ editor</span>
+          <span className="pill"><span aria-hidden="true">✎ </span>editor</span>
           <span className="name">{path}</span>
           {isConflict && <span className="pill" style={{ borderColor: "var(--red)", color: "#fb7185" }}>em conflito</span>}
           {hunks.length > 0 && <span className="pill" style={{ borderColor: "var(--yellow)", color: "#fbbf24" }}>{hunks.length} bloco(s) com marcadores</span>}
           {hunks.length === 0 && isConflict && <span className="pill" style={{ borderColor: "var(--green)", color: "#4ade80" }}>sem marcadores ✓</span>}
           <span className="grow" />
-          <button className="btn btn-ghost btn-sm" onClick={() => openEditor(null)} aria-label="Fechar">
+          <button className="btn btn-ghost btn-sm" onClick={close} aria-label="Fechar editor (Esc)" title="Fechar (Esc)">
             <X size={16} />
           </button>
         </div>
         <div className="editor-body">
           <textarea
+            ref={textRef}
+            aria-label={`Conteúdo de ${path}`}
             value={text}
             onChange={(e) => { setText(e.target.value); setSaved(false); }}
             spellCheck={false}
@@ -120,7 +129,7 @@ export function Editor() {
           )}
         </div>
         <div className="editor-foot">
-          <span className="small muted">Ctrl+S salva · depois rode <code>git add {path}</code> no terminal</span>
+          <span className="small muted">Ctrl+S salva · Esc fecha · depois rode <code>git add {path}</code> no terminal</span>
           <span className="grow" />
           {saved && (
             <span className="small" style={{ color: "var(--green)", display: "inline-flex", gap: 4, alignItems: "center" }}>

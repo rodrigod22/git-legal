@@ -36,7 +36,7 @@ export function CommitGraph({ repo }: { repo: Repo }) {
   }
 
   return (
-    <div className="graph-wrap" style={{ height: "100%" }}>
+    <div className="graph-wrap" style={{ height: "100%" }} tabIndex={0} role="region" aria-label="Grafo de commits">
       <div className="graph-head">
         <span className="pill">🕸 grafo de commits</span>
         <span>mais novo em cima</span>
@@ -105,8 +105,25 @@ export function CommitGraph({ repo }: { repo: Repo }) {
                   <circle r={R} fill="#0a0e16" stroke={color} strokeWidth={2.5} />
                 )}
                 <circle r={3.2} fill={color} />
-                <text x={labelX - cx} y={4} className="graph-sha" fill="#fbbf24" fontFamily="var(--mono)" fontSize={11} onClick={() => insertInTerminal(short(n.sha))}>
-                  <title>Clique para usar este hash no terminal</title>
+                <text
+                  x={labelX - cx}
+                  y={4}
+                  className="graph-sha"
+                  fill="#fbbf24"
+                  fontFamily="var(--mono)"
+                  fontSize={11}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Usar o hash ${short(n.sha)} no terminal`}
+                  onClick={() => insertInTerminal(short(n.sha))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      insertInTerminal(short(n.sha));
+                    }
+                  }}
+                >
+                  <title>Clique ou Enter para usar este hash no terminal</title>
                   {short(n.sha)}
                 </text>
                 <text x={labelX - cx + 62} y={4} fill="#e6eaf2" fontFamily="var(--font)" fontSize={12.5}>

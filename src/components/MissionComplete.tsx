@@ -1,13 +1,23 @@
+import { useRef } from "react";
 import { motion } from "framer-motion";
 import { useStore } from "@/state/store";
+import { useDialog } from "@/lib/useDialog";
 import { findMission, nextMission, ALL_MISSIONS } from "@/content";
 import { BADGES } from "@/content/gamification";
 import { Confetti } from "./Confetti";
 import { Stars } from "@/views/DojoMap";
 
 export function MissionComplete() {
-  const { completion, closeCompletion, startMission, go, progress } = useStore();
-  if (!completion) return null;
+  const completion = useStore((s) => s.completion);
+  return completion ? <CompletionDialog /> : null;
+}
+
+function CompletionDialog() {
+  const { completion: c, closeCompletion, startMission, go, progress } = useStore();
+  const completion = c!;
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const backToMap = () => { closeCompletion(); go("map"); };
+  useDialog(dialogRef, { onClose: backToMap });
   const found = findMission(completion.missionId);
   const next = nextMission(completion.missionId);
   const allDone = ALL_MISSIONS.every((m) => progress[m.id]);
@@ -18,11 +28,11 @@ export function MissionComplete() {
     <>
       <Confetti run />
       <div className="overlay">
-        <motion.div className="card complete" initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 220, damping: 20 }}>
+        <motion.div ref={dialogRef} className="card complete" role="dialog" aria-modal="true" aria-labelledby="complete-title" initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 220, damping: 20 }}>
           <div className="pill" style={{ borderColor: found?.module.color, color: found?.module.color }}>
             {found?.module.title}
           </div>
-          <h2>{found?.mission.boss ? "Chefão derrotado!" : "Missão concluída!"}</h2>
+          <h2 id="complete-title">{found?.mission.boss ? "Chefão derrotado!" : "Missão concluída!"}</h2>
           <div className="muted">{found?.mission.title}</div>
           <div className="big-stars" style={{ marginTop: 14 }}>
             <Stars n={completion.stars} size={34} />
@@ -59,7 +69,7 @@ export function MissionComplete() {
             </div>
           )}
           <div className="row" style={{ justifyContent: "center", flexWrap: "wrap" }}>
-            <button className="btn" onClick={() => { closeCompletion(); go("map"); }}>
+            <button className="btn" onClick={backToMap}>
               Voltar à trilha
             </button>
             {allDone ? (

@@ -122,9 +122,10 @@ export function Terminal() {
         setHistIdx(idx);
         setValue(history[idx]);
       }
-    } else if (e.key === "Tab") {
+    } else if (e.key === "Tab" && !e.shiftKey && suggestions[0]) {
+      // Tab só completa quando há sugestão; sem sugestão (ou com Shift), o foco segue para o próximo controle
       e.preventDefault();
-      if (suggestions[0]) setValue(suggestions[0]);
+      setValue(suggestions[0]);
     } else if (e.key === "l" && e.ctrlKey) {
       e.preventDefault();
       run("clear");
@@ -149,9 +150,9 @@ export function Terminal() {
         </span>
         <span>bash — projeto-rpa</span>
         <span className="grow" />
-        <span className="muted small">clique no hash do grafo para usar · ↑↓ histórico · Tab completa · Ctrl+L limpa</span>
+        <span className="muted small">clique ou Enter no hash do grafo para usar · ↑↓ histórico · Tab completa · Ctrl+L limpa</span>
       </div>
-      <div className="terminal-out" ref={outRef}>
+      <div className="terminal-out" ref={outRef} tabIndex={0} role="region" aria-label="Histórico do terminal">
         {session?.lines.map((l) => (
           <div key={l.id} className={`line ${l.kind}`}>
             {l.kind === "input" ? (

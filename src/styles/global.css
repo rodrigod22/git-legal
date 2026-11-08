@@ -86,6 +86,21 @@ textarea {
   font-family: inherit;
   color: inherit;
 }
+/* foco visível só para quem navega pelo teclado; o mouse não muda de aparência */
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+.terminal-in input:focus-visible,
+.editor textarea:focus-visible,
+.terminal-out:focus-visible,
+.graph-wrap:focus-visible {
+  outline-offset: -2px;
+}
+.graph-sha:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
 ::selection {
   background: rgba(240, 80, 50, 0.35);
 }
@@ -303,7 +318,6 @@ textarea {
   padding: 12px 14px;
   font-size: 15px;
   min-width: 260px;
-  outline: none;
 }
 .hero input:focus {
   border-color: var(--accent);
@@ -635,7 +649,6 @@ textarea {
   min-width: 0;
   background: transparent;
   border: none;
-  outline: none;
   font-family: var(--mono);
   font-size: 13px;
   color: #fff;
@@ -787,13 +800,17 @@ textarea {
   flex-direction: column;
   gap: 4px;
 }
-.cheat span {
+.cheat button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  text-align: left;
   padding: 4px 8px;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.04);
   cursor: pointer;
 }
-.cheat span:hover {
+.cheat button:hover {
   color: var(--text);
 }
 
@@ -935,7 +952,6 @@ textarea {
   min-height: 320px;
   background: #0a0e16;
   border: none;
-  outline: none;
   padding: 14px 16px;
   font-family: var(--mono);
   font-size: 13px;

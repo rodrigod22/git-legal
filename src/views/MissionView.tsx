@@ -140,9 +140,10 @@ export function MissionView() {
             {showCheat && (
               <div className="cheat">
                 {m.cheatsheet.map((c, i) => (
-                  <span key={i} onClick={() => navigator.clipboard?.writeText(c.replace(/\s+\(.*\)$/, ""))} title="copiar">
+                  <button key={i} type="button" onClick={() => navigator.clipboard?.writeText(c.replace(/\s+\(.*\)$/, ""))} title="copiar">
                     {c}
-                  </span>
+                    <span className="sr-only"> (copiar)</span>
+                  </button>
                 ))}
               </div>
             )}
