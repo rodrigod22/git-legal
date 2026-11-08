@@ -1363,3 +1363,40 @@ describe("git diff com arquivo", () => {
     expect(arquivos(res.lines)).toEqual(["-y.txt"]);
   });
 });
+
+// ---------- Etapa 1B3: desvios que perdem trabalho ----------
+
+describe("git checkout -f e arquivo não rastreado", () => {
+  const dois = () => run(G.createRepo({ user: "voce" }), "git init", "echo a > a.txt", "echo x > x.txt", "git add .", 'git commit -m "um"', "echo 2 > b.txt", "git add .", 'git commit -m "dois"').repo;
+  // f tem f.txt a mais que main; estamos em main
+  const fx = () => run(dois(), "git switch -c f", "echo f > f.txt", "git add .", 'git commit -m "f"', "git switch main").repo;
+
+  it("mantém o arquivo não rastreado", () => {
+    const res = run(dois(), "echo u > u.txt", "git switch -c f", "git checkout -f main");
+    expect(res.ok).toBe(true);
+    expect(G.status(res.repo).branch).toBe("main");
+    expect(res.repo.workdir["u.txt"]).toBe("u\n");
+    expect(G.status(res.repo).untracked).toEqual(["u.txt"]);
+  });
+  it("mantém o arquivo não rastreado ao ir para um commit", () => {
+    const res = run(dois(), "echo u > u.txt", "git checkout -f HEAD~1");
+    expect(res.ok).toBe(true);
+    expect(res.repo.head.type).toBe("detached");
+    expect(res.repo.workdir["u.txt"]).toBe("u\n");
+    expect(res.repo.workdir).not.toHaveProperty("b.txt");
+  });
+  it("sobrescreve o não rastreado que colide com o destino", () => {
+    const res = run(fx(), "echo outro > f.txt", "git checkout -f f");
+    expect(res.ok).toBe(true);
+    expect(G.status(res.repo).branch).toBe("f");
+    expect(res.repo.workdir["f.txt"]).toBe("f\n");
+    expect(G.isCleanRepo(res.repo)).toBe(true);
+  });
+  it("apaga o arquivo novo em staging e descarta a edição", () => {
+    const res = run(dois(), "git switch -c f", "echo n > n.txt", "git add n.txt", "echo y >> a.txt", "git checkout -f main");
+    expect(res.ok).toBe(true);
+    expect(res.repo.workdir).not.toHaveProperty("n.txt");
+    expect(res.repo.workdir["a.txt"]).toBe("a\n");
+    expect(G.isCleanRepo(res.repo)).toBe(true);
+  });
+});

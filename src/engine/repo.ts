@@ -460,9 +460,8 @@ export function checkout(repo: Repo, target: string, opts: { create?: boolean; f
   const isBranch = !opts.detach && target in r.branches;
   const sha = target in r.branches ? r.branches[target] : resolve(r, target);
   if (opts.force) {
-    r.workdir = { ...r.commits[sha].tree };
-    r.index = { ...r.commits[sha].tree };
-    r.conflicts = [];
+    // como no Git real, -f descarta o trabalho rastreado, mas mantém o que não é rastreado
+    replaceTracked(r, r.commits[sha].tree);
   } else {
     switchTree(r, sha, "checkout");
   }
