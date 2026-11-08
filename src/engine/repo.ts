@@ -196,8 +196,14 @@ function untrackedCollisions(repo: Repo, tree: Tree): string[] {
   return untrackedPaths(repo).filter((p) => p in tree);
 }
 
-function collisionMessage(files: string[], what: string): string {
-  return `erro: estes arquivos não rastreados seriam sobrescritos por ${what}:\n${files.map((p) => `\t${p}`).join("\n")}\ndica: mova ou apague esses arquivos antes do ${what}.`;
+function collisionMessage(files: string[], what: string, verb = "sobrescritos"): string {
+  return `erro: estes arquivos não rastreados seriam ${verb} por ${what}:\n${files.map((p) => `\t${p}`).join("\n")}\ndica: mova ou apague esses arquivos antes do ${what}.`;
+}
+
+/** Não rastreado em caminho que a troca de `from` para `to` muda: o Git recusa sobrescrevê-lo ou removê-lo. O que a troca não muda fica como está. */
+function assertNoUntrackedInChangedPaths(repo: Repo, from: Tree, to: Tree, what: string) {
+  const files = untrackedPaths(repo).filter((p) => (from[p] ?? null) !== (to[p] ?? null));
+  if (files.length) throw new GitError(collisionMessage(files, what, files.every((p) => p in to) ? "sobrescritos" : "removidos"));
 }
 
 /** Como no Git real, a recusa vale mesmo com o conteúdo idêntico. */
@@ -441,7 +447,7 @@ function switchTree(r: Repo, targetSha: Sha | null, what: string) {
       `erro: suas alterações locais nos arquivos abaixo seriam sobrescritas por ${what}:\n${blocked.map((p) => `\t${p}`).join("\n")}\ndica: faça commit ou 'git stash' antes de trocar de branch.`,
     );
   }
-  assertNoUntrackedCollision(r, target, what);
+  assertNoUntrackedInChangedPaths(r, oldHead, target, what);
   const workdir: Tree = { ...target };
   const index: Tree = { ...target };
   for (const p of staged) {
@@ -543,7 +549,7 @@ function assertMergeKeepsLocalWork(repo: Repo, merged: Tree, conflicts: string[]
   if (dirty.length) {
     throw new GitError(`erro: suas alterações locais seriam sobrescritas por merge:\n${dirty.map((p) => `\t${p}`).join("\n")}\ndica: faça commit ou 'git stash' antes do merge.`);
   }
-  assertNoUntrackedCollision(repo, merged, "merge");
+  assertNoUntrackedInChangedPaths(repo, head, merged, "merge");
 }
 
 export function merge(repo: Repo, ref: string, opts: { noFf?: boolean; message?: string } = {}): MergeResult {

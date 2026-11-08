@@ -1492,6 +1492,26 @@ describe("git switch, git checkout e git merge com trabalho local que colide", (
         expect(G.isCleanRepo(res.repo)).toBe(true);
       }
     });
+    it("deleção em staging com o arquivo ainda na pasta: só o caminho que o destino muda é recusado", () => {
+      // a.txt: o destino tem a mesma versão, então nada muda nele
+      for (const cmd of ["git switch f", "git merge f"]) {
+        const res = run(fx(), "git rm --cached a.txt", cmd);
+        expect(res.ok).toBe(true);
+        expect(G.status(res.repo).staged).toEqual([{ path: "a.txt", kind: "deleted" }]);
+        expect(G.status(res.repo).untracked).toEqual(["a.txt"]);
+        expect(res.repo.workdir["f.txt"]).toBe("f\n");
+      }
+      // b.txt: o destino não tem o arquivo, e o Git recusa remover um não rastreado
+      const antes = run(fsemb(), "git rm --cached b.txt").repo;
+      const res = run(antes, "git switch f");
+      expect(res.ok).toBe(false);
+      expect(texto(res.lines)).toContain("b.txt");
+      expect(texto(res.lines)).toContain("removidos");
+      expect(res.repo).toEqual(antes);
+      const res2 = run(antes, "git switch --detach f");
+      expect(res2.ok).toBe(false);
+      expect(res2.repo).toEqual(antes);
+    });
     it("edição sem add idêntica ao destino continua recusada, como no Git real", () => {
       const antes = run(xconf(), "echo F > x.txt").repo;
       const res = run(antes, "git switch f");
