@@ -113,7 +113,7 @@ describe("branches e merge", () => {
     );
     expect(conflicted.event).toBe("conflict");
     expect(conflicted.repo.conflicts).toEqual(["README.md"]);
-    expect(conflicted.repo.workdir["README.md"]).toContain("<<<<<<< main");
+    expect(conflicted.repo.workdir["README.md"]).toContain("<<<<<<< HEAD");
     expect(conflicted.repo.workdir["README.md"]).toContain(">>>>>>> feature");
 
     const blocked = run(conflicted.repo, 'git commit -m "tentando"');
@@ -1965,8 +1965,7 @@ describe("N6: git diff durante um conflito", () => {
     expect(res.ok).toBe(true);
     return res.lines.length ? texto1b4(res.lines).split("\n") : [];
   };
-  // no merge, o Dojo rotula o lado de cá com o nome da branch; o Git real usa HEAD (desvio N19, registrado no plano)
-  const cc = (label: string, ours = "main") => ["diff --cc x.txt", "--- a/x.txt", "+++ b/x.txt", `++<<<<<<< ${ours}`, " +M", "++=======", "+ F", `++>>>>>>> ${label}`];
+  const cc = (label: string, ours = "HEAD") => ["diff --cc x.txt", "--- a/x.txt", "+++ b/x.txt", `++<<<<<<< ${ours}`, " +M", "++=======", "+ F", `++>>>>>>> ${label}`];
 
   it("git diff mostra o diff combinado do arquivo em conflito, como no Git real", () => {
     const lines = diff(run(xconf1b4(), "git merge f").repo, "git diff");
@@ -2034,7 +2033,7 @@ describe("N6: git diff durante um conflito", () => {
   describe("o que continua igual", () => {
     it("git diff HEAD durante o conflito é um diff comum, com os marcadores como linhas novas", () => {
       const lines = diff(run(xconf1b4(), "git merge f").repo, "git diff HEAD");
-      expect(lines).toEqual(["diff --git a/x.txt b/x.txt", "--- a/x.txt", "+++ b/x.txt", "+<<<<<<< main", " M", "+=======", "+F", "+>>>>>>> f"]);
+      expect(lines).toEqual(["diff --git a/x.txt b/x.txt", "--- a/x.txt", "+++ b/x.txt", "+<<<<<<< HEAD", " M", "+=======", "+F", "+>>>>>>> f"]);
     });
     it("git diff entre duas referências ignora o conflito", () => {
       const lines = diff(run(xconf1b4(), "git merge f").repo, "git diff HEAD~1 HEAD");
@@ -2399,5 +2398,40 @@ describe("N11: git switch para a branch atual", () => {
       expect(res.ok).toBe(false);
       expect(texto1b4(res.lines)).toContain("já existe");
     });
+  });
+});
+
+describe("N19: rótulo do lado de cá no marcador de conflito (medido no Git 2.52 na Etapa 1G)", () => {
+  const marcadores = (r: Repo, p = "x.txt") => (r.workdir[p] ?? "").split("\n").filter((l) => /^(<<<<<<<|>>>>>>>) /.test(l));
+  it("merge numa branch: HEAD de cá e a referência pedida de lá", () => {
+    const r = run(xconf1b4(), "git merge f").repo;
+    expect(r.conflicts).toEqual(["x.txt"]);
+    expect(marcadores(r)).toEqual(["<<<<<<< HEAD", ">>>>>>> f"]);
+  });
+  it("merge com HEAD desanexado: também HEAD", () => {
+    const r = run(xconf1b4(), "git switch --detach main", "git merge f").repo;
+    expect(r.conflicts).toEqual(["x.txt"]);
+    expect(marcadores(r)).toEqual(["<<<<<<< HEAD", ">>>>>>> f"]);
+  });
+  it("rebase: HEAD de cá e o hash curto com a mensagem do commit reaplicado", () => {
+    expect(marcadores(rebaseParado1b4())).toEqual(["<<<<<<< HEAD", expect.stringMatching(/^>>>>>>> [0-9a-f]{7} \(F\)$/)]);
+  });
+  it("pull --rebase: igual ao rebase, com o commit local de lá", () => {
+    let r = G.addRemote(dois1b4());
+    r = G.push(r, { branch: "main" }).repo;
+    r = G.remoteCommit(r, "main", "ana", "remoto", (t) => ({ ...t, "x.txt": "R\n" }));
+    const res = run(r, "echo L > x.txt", "git add .", 'git commit -m "local"', "git pull --rebase");
+    expect(res.repo.conflicts).toEqual(["x.txt"]);
+    expect(marcadores(res.repo)).toEqual(["<<<<<<< HEAD", expect.stringMatching(/^>>>>>>> [0-9a-f]{7} \(local\)$/)]);
+  });
+  it("cherry-pick: HEAD de cá e o hash curto com a mensagem de lá", () => {
+    expect(marcadores(pickParado1b4())).toEqual(["<<<<<<< HEAD", expect.stringMatching(/^>>>>>>> [0-9a-f]{7} \(F\)$/)]);
+  });
+  it("revert: HEAD de cá e 'parent of' com o hash curto de lá", () => {
+    expect(marcadores(revertParado1b4())).toEqual(["<<<<<<< HEAD", expect.stringMatching(/^>>>>>>> parent of [0-9a-f]{7} \(z\)$/)]);
+  });
+  it("stash pop: Updated upstream de cá e Stashed changes de lá", () => {
+    const r = run(dois1b4(), "echo S > x.txt", "git stash", "echo M > x.txt", "git add .", 'git commit -m "M"', "git stash pop").repo;
+    expect(marcadores(r)).toEqual(["<<<<<<< Updated upstream", ">>>>>>> Stashed changes"]);
   });
 });

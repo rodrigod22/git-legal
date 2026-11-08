@@ -607,9 +607,9 @@ export function merge(repo: Repo, ref: string, opts: { noFf?: boolean; message?:
   }
   const baseSha = mergeBase(r, head, target);
   const base = baseSha ? r.commits[baseSha].tree : {};
-  const label = currentBranch(r) ?? short(head);
   const ours = r.commits[head].tree;
-  const { tree, conflicts, theirs } = mergeTrees(base, ours, r.commits[target].tree, { ours: label, theirs: ref });
+  // como no Git real, o lado de cá do marcador é sempre HEAD, mesmo numa branch (desvio N19, corrigido na Etapa 1G)
+  const { tree, conflicts, theirs } = mergeTrees(base, ours, r.commits[target].tree, { ours: "HEAD", theirs: ref });
   const staged = status(r).staged;
   if (staged.length) {
     // só o merge de três vias exige a staging limpa: o commit de merge não pode levar outra coisa junto

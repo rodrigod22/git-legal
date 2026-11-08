@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { X, Save, Check } from "lucide-react";
 import { useStore } from "@/state/store";
+import { currentBranch } from "@/engine/repo";
 import { useDialog } from "@/lib/useDialog";
 
 interface Hunk {
@@ -67,6 +68,9 @@ function EditorDialog({ path }: { path: string }) {
   }, [path, original]);
 
   const hunks = useMemo(() => parseHunks(text), [text]);
+  // o marcador diz "HEAD", como no Git real; o nome da branch entra ao lado para o aluno saber qual é o lado de cá
+  const branch = session ? currentBranch(session.repo) : null;
+  const oursHeader = (label: string) => (branch && label !== branch ? `${label} · ${branch}` : label);
   const isConflict = session?.repo.conflicts.includes(path) ?? false;
 
   const save = (close = false) => {
@@ -111,7 +115,7 @@ function EditorDialog({ path }: { path: string }) {
               {hunks.map((h) => (
                 <div className="hunk" key={h.index}>
                   <div className="side ours">
-                    <b><span aria-hidden="true">⬆ </span>atual (HEAD · {h.oursLabel})</b>
+                    <b><span aria-hidden="true">⬆ </span>atual ({oursHeader(h.oursLabel)})</b>
                     {h.ours.join("\n") || <i className="muted">(vazio)</i>}
                   </div>
                   <div className="side theirs">
