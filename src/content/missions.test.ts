@@ -205,10 +205,16 @@ describe("coerência do conteúdo com o fluxo trunk-based", () => {
   it("nenhuma missão proíbe commitar direto na main", () => {
     for (const m of ALL_MISSIONS) expect(textoDe(m.id), m.id).not.toMatch(/ningu[eé]m (desenvolve|commita|trabalha) direto na/i);
   });
-  it("primeira branch apresenta a branch como exceção curta ao commit direto na main", () => {
+  it("primeira branch apresenta a branch como escolha local e opcional, sem contrariar o commit direto na main", () => {
     const texto = textoDe("primeira-branch");
     expect(texto).toMatch(/direto na `main`/);
-    expect(texto).toMatch(/branch curta/i);
+    expect(texto).toMatch(/branch local curta/i);
+    expect(texto).toMatch(/não é obrigatório/i);
+  });
+  it("no-ff não apresenta branch nem --no-ff como regra da empresa", () => {
+    const texto = textoDe("no-ff");
+    expect(texto).toMatch(/fluxo oficial é commit direto na `main`/);
+    expect(texto).not.toMatch(/apenas em features grandes/i);
   });
   it("branch curta explica a atualização sem o desvio do pull --rebase", () => {
     const texto = textoDe("branch-curta");

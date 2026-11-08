@@ -98,7 +98,7 @@ export const merge: Module = {
         points: [
           "Força um commit de merge mesmo quando o fast-forward seria possível.",
           "Vantagem: o grupo de commits da feature fica visível como uma 'bolha' no grafo e pode ser revertido de uma vez.",
-          "Na RPA usamos fast-forward por padrão (histórico linear) e `--no-ff` apenas em features grandes.",
+          "Na RPA o fluxo oficial é commit direto na `main`, com histórico linear. Branches e `--no-ff` são escolha de quem prefere trabalhar em paralelo no local; use `--no-ff` só quando a 'bolha' no histórico tiver valor.",
         ],
       },
       setup: () =>
