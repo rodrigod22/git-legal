@@ -62,7 +62,7 @@ function CompletionDialog() {
                 const def = BADGES.find((x) => x.id === b)!;
                 return (
                   <motion.div key={b} className="pill" style={{ fontSize: 14, padding: "8px 14px", margin: 4, borderColor: "var(--yellow)", color: "#fde68a" }} initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.3 }}>
-                    {def.emoji} Nova conquista: {def.name}
+                    <span aria-hidden="true">{def.emoji} </span>Nova conquista: {def.name}
                   </motion.div>
                 );
               })}
@@ -74,7 +74,7 @@ function CompletionDialog() {
             </button>
             {allDone ? (
               <button className="btn btn-primary" onClick={() => { closeCompletion(); go("certificate"); }}>
-                🎓 Pegar o certificado
+                <span aria-hidden="true">🎓 </span>Pegar o certificado
               </button>
             ) : next ? (
               <button className="btn btn-primary" onClick={() => { closeCompletion(); startMission(next.id); }}>

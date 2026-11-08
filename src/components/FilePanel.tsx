@@ -4,7 +4,7 @@ import * as G from "@/engine/repo";
 import type { Repo } from "@/engine/types";
 
 function icon(path: string) {
-  return /\.(php|css|js|ts)$/.test(path) ? <FileCode2 size={14} color="#94a3b8" /> : <FileText size={14} color="#94a3b8" />;
+  return /\.(php|css|js|ts)$/.test(path) ? <FileCode2 size={14} color="#94a3b8" aria-hidden="true" /> : <FileText size={14} color="#94a3b8" aria-hidden="true" />;
 }
 
 export function FilePanel({ repo }: { repo: Repo }) {
@@ -27,7 +27,7 @@ export function FilePanel({ repo }: { repo: Repo }) {
     <div>
       <div className="section-title" style={{ marginTop: 0 }}>
         <span className="row" style={{ gap: 6 }}>
-          <Folder size={13} /> projeto-rpa
+          <Folder size={13} aria-hidden="true" /> projeto-rpa
         </span>
       </div>
       <div className="files">
@@ -40,7 +40,8 @@ export function FilePanel({ repo }: { repo: Repo }) {
               <span>{f}</span>
               {b && (
                 <span className={`badge ${b.k}`} title={b.t}>
-                  {b.k}
+                  <span aria-hidden="true">{b.k}</span>
+                  <span className="sr-only">, {b.t}</span>
                 </span>
               )}
             </button>
@@ -53,7 +54,7 @@ export function FilePanel({ repo }: { repo: Repo }) {
           <div className="section-title">As três áreas</div>
           <div className="areas">
             <div className="area">
-              <h5>working directory</h5>
+              <h2>working directory</h2>
               {st.unstaged.length + st.untracked.length === 0 ? <div className="empty">nada modificado</div> : null}
               {st.untracked.map((p) => (
                 <div key={p} className="mono small" style={{ color: "#cbd5e1" }}>
@@ -67,7 +68,7 @@ export function FilePanel({ repo }: { repo: Repo }) {
               ))}
             </div>
             <div className="area">
-              <h5>staging (index)</h5>
+              <h2>staging (index)</h2>
               {st.staged.length === 0 ? <div className="empty">bandeja vazia</div> : null}
               {st.staged.map((f) => (
                 <div key={f.path} className="mono small" style={{ color: "#4ade80" }}>
@@ -76,7 +77,7 @@ export function FilePanel({ repo }: { repo: Repo }) {
               ))}
             </div>
             <div className="area">
-              <h5>repositório</h5>
+              <h2>repositório</h2>
               <div className="small" style={{ color: "#cbd5e1" }}>
                 {Object.keys(repo.commits).length} commit(s) · {Object.keys(repo.branches).length} branch(es)
                 {repo.remote && (

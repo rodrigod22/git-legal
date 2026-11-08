@@ -45,10 +45,10 @@ export function MissionView() {
 
   return (
     <div className="mission-view">
-      <aside className="panel">
+      <aside className="panel" aria-label="Missão">
         <div className="row" style={{ marginBottom: 12 }}>
           <button className="btn btn-ghost btn-sm" onClick={() => go("map")}>
-            <ArrowLeft size={14} /> Trilha
+            <ArrowLeft size={14} aria-hidden="true" /> Trilha
           </button>
           <span className="grow" />
           {found && (
@@ -58,10 +58,10 @@ export function MissionView() {
           )}
           {isPlayground && <span className="pill">modo livre</span>}
         </div>
-        <h2 className="mission-title">
-          {m.boss && "👑 "}
+        <h1 className="mission-title">
+          {m.boss && <span role="img" aria-label="chefão">👑 </span>}
           {m.title}
-        </h2>
+        </h1>
         <div className="mission-tag">{m.tagline}</div>
 
         <div className="story">
@@ -74,10 +74,13 @@ export function MissionView() {
 
         {m.concept && (
           <div className="card concept" style={{ marginTop: 14 }}>
-            <button className="row" style={{ width: "100%", textAlign: "left" }} onClick={() => setShowConcept((v) => !v)}>
-              <h4 style={{ margin: 0 }}>💡 {m.concept.title}</h4>
+            <button className="row" style={{ width: "100%", textAlign: "left" }} onClick={() => setShowConcept((v) => !v)} aria-expanded={showConcept}>
+              <h2 style={{ margin: 0 }}>
+                <span aria-hidden="true">💡 </span>
+                {m.concept.title}
+              </h2>
               <span className="grow" />
-              {showConcept ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              {showConcept ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
             </button>
             <AnimatePresence initial={false}>
               {showConcept && (
@@ -104,8 +107,9 @@ export function MissionView() {
             <div className="objectives">
               {m.objectives.map((o, i) => (
                 <motion.div key={o.id} className={`objective ${objectives[i] ? "done" : ""}`} layout>
-                  <span className="check">{objectives[i] && <Check size={13} strokeWidth={3} />}</span>
+                  <span className="check" aria-hidden="true">{objectives[i] && <Check size={13} strokeWidth={3} />}</span>
                   <span>
+                    <span className="sr-only">{objectives[i] ? "Concluído: " : "Pendente: "}</span>
                     <Rich text={o.text} />
                   </span>
                 </motion.div>
@@ -121,7 +125,7 @@ export function MissionView() {
               ))}
               {hintsRevealed < m.hints.length ? (
                 <button className="btn btn-sm" onClick={revealHint}>
-                  <Lightbulb size={14} /> Pedir dica ({hintsRevealed}/{m.hints.length}) <span className="muted small">· custa estrelas</span>
+                  <Lightbulb size={14} aria-hidden="true" /> Pedir dica ({hintsRevealed}/{m.hints.length}) <span className="muted small">· custa estrelas</span>
                 </button>
               ) : (
                 <div className="small muted">Todas as dicas reveladas.</div>
@@ -133,8 +137,8 @@ export function MissionView() {
         {m.cheatsheet && (
           <>
             <div className="section-title">
-              <button className="row" style={{ gap: 6, textTransform: "inherit", letterSpacing: "inherit", color: "inherit", fontWeight: "inherit", fontSize: "inherit" }} onClick={() => { if (!showCheat && !isPlayground && hintsRevealed < m.hints.length) revealHint(); setShowCheat((v) => !v); }}>
-                <ScrollText size={12} /> Cola de comandos {showCheat ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              <button className="row" style={{ gap: 6, textTransform: "inherit", letterSpacing: "inherit", color: "inherit", fontWeight: "inherit", fontSize: "inherit" }} onClick={() => { if (!showCheat && !isPlayground && hintsRevealed < m.hints.length) revealHint(); setShowCheat((v) => !v); }} aria-expanded={showCheat}>
+                <ScrollText size={12} aria-hidden="true" /> Cola de comandos {showCheat ? <ChevronUp size={12} aria-hidden="true" /> : <ChevronDown size={12} aria-hidden="true" />}
               </button>
             </div>
             {showCheat && (
@@ -152,7 +156,7 @@ export function MissionView() {
 
         <div className="row" style={{ marginTop: 20 }}>
           <button className="btn btn-ghost btn-sm" onClick={() => { if (confirm("Reiniciar a missão do zero?")) restartMission(); }}>
-            <RotateCcw size={14} /> Reiniciar missão
+            <RotateCcw size={14} aria-hidden="true" /> Reiniciar missão
           </button>
           <span className="grow" />
           <span className="small muted mono">
@@ -165,7 +169,7 @@ export function MissionView() {
         <div style={{ minHeight: 0, display: "flex", flexDirection: "column" }}>
           <AnimatePresence>
             {banner && (
-              <motion.div key={banner.cls + banner.text} className={`state-banner ${banner.cls}`} style={{ margin: "10px 14px 0", flexShrink: 0 }} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+              <motion.div key={banner.cls + banner.text} className={`state-banner ${banner.cls}`} role="status" style={{ margin: "10px 14px 0", flexShrink: 0 }} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
                 {banner.text}
               </motion.div>
             )}
@@ -177,7 +181,7 @@ export function MissionView() {
         <Terminal />
       </section>
 
-      <aside className="panel panel-right">
+      <aside className="panel panel-right" aria-label="Arquivos e áreas do Git">
         <FilePanel repo={repo} />
       </aside>
 

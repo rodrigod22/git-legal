@@ -14,19 +14,19 @@ export function Certificate() {
     <div style={{ padding: "20px" }}>
       <div className="row no-print" style={{ maxWidth: 900, margin: "0 auto 10px" }}>
         <button className="btn btn-ghost btn-sm" onClick={() => go("map")}>
-          ← Trilha
+          <span aria-hidden="true">← </span>Trilha
         </button>
         <span className="grow" />
         {complete && (
           <button className="btn btn-primary btn-sm" onClick={() => window.print()}>
-            🖨 Imprimir / salvar PDF
+            <span aria-hidden="true">🖨 </span>Imprimir / salvar PDF
           </button>
         )}
       </div>
       {!complete ? (
         <div className="card" style={{ maxWidth: 600, margin: "40px auto", padding: 32, textAlign: "center" }}>
-          <div style={{ fontSize: 40 }}>🔒</div>
-          <h3 style={{ margin: "10px 0" }}>Certificado bloqueado</h3>
+          <div style={{ fontSize: 40 }} aria-hidden="true">🔒</div>
+          <h1 style={{ margin: "10px 0", fontSize: 20 }}>Certificado bloqueado</h1>
           <p className="muted">
             Conclua todas as {ALL_MISSIONS.length} missões para liberar. Você já fez {done}.
           </p>

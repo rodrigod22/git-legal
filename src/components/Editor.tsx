@@ -86,7 +86,7 @@ function EditorDialog({ path }: { path: string }) {
           {hunks.length === 0 && isConflict && <span className="pill" style={{ borderColor: "var(--green)", color: "#4ade80" }}>sem marcadores ✓</span>}
           <span className="grow" />
           <button className="btn btn-ghost btn-sm" onClick={close} aria-label="Fechar editor (Esc)" title="Fechar (Esc)">
-            <X size={16} />
+            <X size={16} aria-hidden="true" />
           </button>
         </div>
         <div className="editor-body">
@@ -111,11 +111,11 @@ function EditorDialog({ path }: { path: string }) {
               {hunks.map((h) => (
                 <div className="hunk" key={h.index}>
                   <div className="side ours">
-                    <b>⬆ atual (HEAD · {h.oursLabel})</b>
+                    <b><span aria-hidden="true">⬆ </span>atual (HEAD · {h.oursLabel})</b>
                     {h.ours.join("\n") || <i className="muted">(vazio)</i>}
                   </div>
                   <div className="side theirs">
-                    <b>⬇ entrada ({h.theirsLabel})</b>
+                    <b><span aria-hidden="true">⬇ </span>entrada ({h.theirsLabel})</b>
                     {h.theirs.join("\n") || <i className="muted">(vazio)</i>}
                   </div>
                   <div className="actions">
@@ -133,11 +133,11 @@ function EditorDialog({ path }: { path: string }) {
           <span className="grow" />
           {saved && (
             <span className="small" style={{ color: "var(--green)", display: "inline-flex", gap: 4, alignItems: "center" }}>
-              <Check size={14} /> salvo
+              <Check size={14} aria-hidden="true" /> salvo
             </span>
           )}
           <button className="btn btn-sm" onClick={() => save(false)}>
-            <Save size={14} /> Salvar
+            <Save size={14} aria-hidden="true" /> Salvar
           </button>
           <button className="btn btn-primary btn-sm" onClick={() => save(true)}>
             Salvar e fechar

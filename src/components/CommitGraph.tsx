@@ -27,7 +27,7 @@ export function CommitGraph({ repo }: { repo: Repo }) {
     return (
       <div className="graph-wrap center" style={{ height: "100%" }}>
         <div style={{ textAlign: "center", color: "var(--muted)" }}>
-          <div style={{ fontSize: 42, marginBottom: 8 }}>🌱</div>
+          <div style={{ fontSize: 42, marginBottom: 8 }} aria-hidden="true">🌱</div>
           <b>{repo.initialized ? "Nenhum commit ainda" : "Pasta sem repositório"}</b>
           <div className="small">{repo.initialized ? "Faça o primeiro commit e ele aparece aqui." : "Rode git init para começar."}</div>
         </div>
@@ -38,20 +38,22 @@ export function CommitGraph({ repo }: { repo: Repo }) {
   return (
     <div className="graph-wrap" style={{ height: "100%" }} tabIndex={0} role="region" aria-label="Grafo de commits">
       <div className="graph-head">
-        <span className="pill">🕸 grafo de commits</span>
+        <span className="pill"><span aria-hidden="true">🕸 </span>grafo de commits</span>
         <span>mais novo em cima</span>
         {state && (
           <span className="pill" style={{ borderColor: state === "detached" ? "var(--cyan)" : "var(--yellow)", color: state === "detached" ? "var(--cyan)" : "var(--yellow)" }}>
-            {state === "rebase" ? "⟳ rebase em andamento" : state === "detached" ? "⚠ HEAD desanexado" : `⚡ ${state} em andamento`}
+            <span aria-hidden="true">{state === "rebase" ? "⟳ " : state === "detached" ? "⚠ " : "⚡ "}</span>
+            {state === "rebase" ? "rebase em andamento" : state === "detached" ? "HEAD desanexado" : `${state} em andamento`}
           </span>
         )}
         {repo.conflicts.length > 0 && (
           <span className="pill" style={{ borderColor: "var(--red)", color: "#fb7185" }}>
-            ✖ {repo.conflicts.length} conflito(s)
+            <span aria-hidden="true">✖ </span>{repo.conflicts.length} conflito(s)
           </span>
         )}
       </div>
-      <svg width={width} height={height} style={{ display: "block" }}>
+      <svg width={width} height={height} style={{ display: "block" }} role="group" aria-label={`${layout.nodes.length} commit(s), do mais novo para o mais antigo; cada hash é um botão que o coloca no terminal`}>
+        <title>Grafo de commits do repositório</title>
         <defs>
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="3" result="b" />

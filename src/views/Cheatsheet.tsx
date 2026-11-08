@@ -75,19 +75,19 @@ export function Cheatsheet() {
     <div className="cheatsheet">
       <div className="map-head">
         <div>
-          <h2>Cola de Git</h2>
+          <h1>Cola de Git</h1>
           <div className="muted" style={{ marginTop: 6 }}>
             Os comandos do treinamento, resumidos. Imprima e deixe ao lado do teclado.
           </div>
         </div>
         <button className="btn btn-sm no-print" onClick={() => window.print()}>
-          🖨 Imprimir
+          <span aria-hidden="true">🖨 </span>Imprimir
         </button>
       </div>
       <div className="cheat-grid">
         {SECTIONS.map((s) => (
           <div key={s.title} className="card cheat-card">
-            <h4>{s.title}</h4>
+            <h2>{s.title}</h2>
             <table>
               <tbody>
                 {s.rows.map(([c, d]) => (

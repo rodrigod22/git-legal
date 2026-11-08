@@ -61,185 +61,240 @@ function Box({ x, y, w, h, title, color, children }: { x: number; y: number; w: 
   );
 }
 
+/** Descrição curta de cada diagrama, lida por leitores de tela no lugar do desenho. */
+const DESCRICAO: Record<DiagramId, string> = {
+  "three-areas": "As três áreas do Git: working dir, staging e repositório. git add leva do working dir para a staging; git commit leva da staging para o repositório.",
+  branch: "Uma branch feature/login nasce do commit c3 da main; o commit c4 fica só na feature, onde HEAD aponta.",
+  "fast-forward": "Antes: main em c2 e feature dois commits à frente. Depois do merge fast-forward, main avança até o mesmo commit da feature, sem commit de merge.",
+  "three-way": "Merge de três vias: o Git compara a base comum, a main e a feature, e cria um commit de merge com dois pais.",
+  conflict: "Arquivo com marcadores de conflito: entre <<<<<<< HEAD e ======= está o seu lado; entre ======= e >>>>>>> está o lado que chega. Resolver é escrever a versão final e apagar as três linhas de marcador.",
+  rebase: "Antes: a feature nasce de um commit antigo da main. Depois de git rebase main, o commit da feature é reaplicado em cima da main, com hash novo.",
+  trunk: "Trunk-based: todos fazem commits pequenos direto na main, com git pull --rebase e git push várias vezes por dia.",
+  stash: "git stash guarda as alterações do working dir na gaveta stash@{0}; git stash pop devolve.",
+  detached: "HEAD aponta para o commit c2, fora da branch main, que está em c4: estado desanexado.",
+  revert: "reset apaga o commit e só é seguro no local; revert adiciona um commit inverso e é seguro no remoto.",
+};
+
 export function Diagram({ id }: { id: DiagramId }) {
+  const d = diagrama(id);
+  if (!d) return null;
+  return (
+    <svg className="diagram" viewBox={d.viewBox} role="img" aria-label={DESCRICAO[id]}>
+      <title>{DESCRICAO[id]}</title>
+      {d.children}
+    </svg>
+  );
+}
+
+function diagrama(id: DiagramId): { viewBox: string; children: React.ReactNode } | null {
   switch (id) {
     case "three-areas":
-      return (
-        <svg className="diagram" viewBox="0 0 320 130">
-          <Box x={8} y={14} w={92} h={100} title="working dir" color={C.yellow}>
-            <text x={54} y={50} textAnchor="middle">README.md</text>
-            <text x={54} y={66} textAnchor="middle">index.php</text>
-          </Box>
-          <Box x={114} y={14} w={92} h={100} title="staging" color={C.feat}>
-            <text x={160} y={50} textAnchor="middle">README.md</text>
-          </Box>
-          <Box x={220} y={14} w={92} h={100} title="repositório" color={C.main}>
-            <Node x={266} y={56} color={C.main} />
-            <Node x={266} y={86} color={C.main} />
-            <Line x1={266} y1={65} x2={266} y2={77} color={C.main} />
-          </Box>
-          <Arrow x1={100} y1={95} x2={114} y2={95} color={C.text} />
-          <text x={107} y={124} textAnchor="middle" className="lbl">git add</text>
-          <Arrow x1={206} y1={95} x2={220} y2={95} color={C.text} />
-          <text x={213} y={124} textAnchor="middle" className="lbl">git commit</text>
-        </svg>
-      );
+      return {
+        viewBox: "0 0 320 130",
+        children: (
+          <>
+            <Box x={8} y={14} w={92} h={100} title="working dir" color={C.yellow}>
+              <text x={54} y={50} textAnchor="middle">README.md</text>
+              <text x={54} y={66} textAnchor="middle">index.php</text>
+            </Box>
+            <Box x={114} y={14} w={92} h={100} title="staging" color={C.feat}>
+              <text x={160} y={50} textAnchor="middle">README.md</text>
+            </Box>
+            <Box x={220} y={14} w={92} h={100} title="repositório" color={C.main}>
+              <Node x={266} y={56} color={C.main} />
+              <Node x={266} y={86} color={C.main} />
+              <Line x1={266} y1={65} x2={266} y2={77} color={C.main} />
+            </Box>
+            <Arrow x1={100} y1={95} x2={114} y2={95} color={C.text} />
+            <text x={107} y={124} textAnchor="middle" className="lbl">git add</text>
+            <Arrow x1={206} y1={95} x2={220} y2={95} color={C.text} />
+            <text x={213} y={124} textAnchor="middle" className="lbl">git commit</text>
+          </>
+        ),
+        };
     case "branch":
-      return (
-        <svg className="diagram" viewBox="0 0 320 120">
-          <Line x1={40} y1={70} x2={160} y2={70} color={C.main} />
-          <Curve x1={160} y1={70} x2={230} y2={35} color={C.feat} />
-          <Node x={40} y={70} color={C.main} label="c1" />
-          <Node x={100} y={70} color={C.main} label="c2" />
-          <Node x={160} y={70} color={C.main} label="c3" />
-          <Node x={230} y={35} color={C.feat} label="c4" />
-          <Tag x={160} y={100} text="main" color={C.main} />
-          <Tag x={275} y={35} text="feature/login" color={C.feat} />
-          <Tag x={230} y={12} text="HEAD" color={C.head} />
-        </svg>
-      );
+      return {
+        viewBox: "0 0 320 120",
+        children: (
+          <>
+            <Line x1={40} y1={70} x2={160} y2={70} color={C.main} />
+            <Curve x1={160} y1={70} x2={230} y2={35} color={C.feat} />
+            <Node x={40} y={70} color={C.main} label="c1" />
+            <Node x={100} y={70} color={C.main} label="c2" />
+            <Node x={160} y={70} color={C.main} label="c3" />
+            <Node x={230} y={35} color={C.feat} label="c4" />
+            <Tag x={160} y={100} text="main" color={C.main} />
+            <Tag x={275} y={35} text="feature/login" color={C.feat} />
+            <Tag x={230} y={12} text="HEAD" color={C.head} />
+          </>
+        ),
+        };
     case "fast-forward":
-      return (
-        <svg className="diagram" viewBox="0 0 320 130">
-          <text x={10} y={20} className="lbl">antes</text>
-          <Line x1={40} y1={40} x2={100} y2={40} color={C.main} />
-          <Line x1={100} y1={40} x2={220} y2={40} color={C.feat} />
-          <Node x={40} y={40} color={C.main} />
-          <Node x={100} y={40} color={C.main} />
-          <Node x={160} y={40} color={C.feat} />
-          <Node x={220} y={40} color={C.feat} />
-          <Tag x={100} y={18} text="main" color={C.main} />
-          <Tag x={220} y={18} text="feature" color={C.feat} />
-          <text x={10} y={90} className="lbl">depois do merge (fast-forward)</text>
-          <Line x1={40} y1={110} x2={220} y2={110} color={C.main} />
-          <Node x={40} y={110} color={C.main} />
-          <Node x={100} y={110} color={C.main} />
-          <Node x={160} y={110} color={C.main} />
-          <Node x={220} y={110} color={C.main} />
-          <Tag x={250} y={88} text="main" color={C.main} />
-          <Tag x={296} y={88} text="feature" color={C.feat} />
-          <Arrow x1={110} y1={62} x2={200} y2={88} color={C.muted} />
-        </svg>
-      );
+      return {
+        viewBox: "0 0 320 130",
+        children: (
+          <>
+            <text x={10} y={20} className="lbl">antes</text>
+            <Line x1={40} y1={40} x2={100} y2={40} color={C.main} />
+            <Line x1={100} y1={40} x2={220} y2={40} color={C.feat} />
+            <Node x={40} y={40} color={C.main} />
+            <Node x={100} y={40} color={C.main} />
+            <Node x={160} y={40} color={C.feat} />
+            <Node x={220} y={40} color={C.feat} />
+            <Tag x={100} y={18} text="main" color={C.main} />
+            <Tag x={220} y={18} text="feature" color={C.feat} />
+            <text x={10} y={90} className="lbl">depois do merge (fast-forward)</text>
+            <Line x1={40} y1={110} x2={220} y2={110} color={C.main} />
+            <Node x={40} y={110} color={C.main} />
+            <Node x={100} y={110} color={C.main} />
+            <Node x={160} y={110} color={C.main} />
+            <Node x={220} y={110} color={C.main} />
+            <Tag x={250} y={88} text="main" color={C.main} />
+            <Tag x={296} y={88} text="feature" color={C.feat} />
+            <Arrow x1={110} y1={62} x2={200} y2={88} color={C.muted} />
+          </>
+        ),
+        };
     case "three-way":
-      return (
-        <svg className="diagram" viewBox="0 0 320 130">
-          <Line x1={40} y1={70} x2={100} y2={70} color={C.main} />
-          <Line x1={100} y1={70} x2={180} y2={70} color={C.main} />
-          <Curve x1={100} y1={70} x2={180} y2={30} color={C.feat} />
-          <Curve x1={180} y1={70} x2={250} y2={50} color={C.main} />
-          <Curve x1={180} y1={30} x2={250} y2={50} color={C.feat} />
-          <Node x={40} y={70} color={C.main} />
-          <Node x={100} y={70} color={C.violet} label="base" />
-          <Node x={180} y={70} color={C.main} label="main" />
-          <Node x={180} y={30} color={C.feat} label="feature" />
-          <Node x={250} y={50} color={C.main} square label="merge" />
-          <text x={290} y={55} fill={C.text} className="lbl">2 pais</text>
-          <text x={18} y={118} className="lbl">O Git compara base × main × feature e combina o que mudou de cada lado.</text>
-        </svg>
-      );
+      return {
+        viewBox: "0 0 320 130",
+        children: (
+          <>
+            <Line x1={40} y1={70} x2={100} y2={70} color={C.main} />
+            <Line x1={100} y1={70} x2={180} y2={70} color={C.main} />
+            <Curve x1={100} y1={70} x2={180} y2={30} color={C.feat} />
+            <Curve x1={180} y1={70} x2={250} y2={50} color={C.main} />
+            <Curve x1={180} y1={30} x2={250} y2={50} color={C.feat} />
+            <Node x={40} y={70} color={C.main} />
+            <Node x={100} y={70} color={C.violet} label="base" />
+            <Node x={180} y={70} color={C.main} label="main" />
+            <Node x={180} y={30} color={C.feat} label="feature" />
+            <Node x={250} y={50} color={C.main} square label="merge" />
+            <text x={290} y={55} fill={C.text} className="lbl">2 pais</text>
+            <text x={18} y={118} className="lbl">O Git compara base × main × feature e combina o que mudou de cada lado.</text>
+          </>
+        ),
+        };
     case "conflict":
-      return (
-        <svg className="diagram" viewBox="0 0 320 128">
-          <rect x={8} y={8} width={304} height={112} rx={8} fill="#0a0e16" stroke={C.muted} />
-          <text x={18} y={28} fill={C.head} fontWeight={700}>{"<<<<<<< HEAD"}</text>
-          <text x={18} y={44} fill="#a5f3fc">{"# Portal RPA v2"}</text>
-          <text x={18} y={60} fill={C.yellow} fontWeight={700}>{"======="}</text>
-          <text x={18} y={76} fill="#f5d0fe">{"# Portal RPA — Intranet"}</text>
-          <text x={18} y={92} fill={C.violet} fontWeight={700}>{">>>>>>> feature/titulo"}</text>
-          <text x={200} y={44} className="lbl" fill={C.head}>← seu lado (onde você está)</text>
-          <text x={200} y={76} className="lbl" fill={C.violet}>← lado que chega</text>
-          <text x={18} y={112} className="lbl">Resolver = escrever a versão final e apagar as 3 linhas de marcador.</text>
-        </svg>
-      );
+      return {
+        viewBox: "0 0 320 128",
+        children: (
+          <>
+            <rect x={8} y={8} width={304} height={112} rx={8} fill="#0a0e16" stroke={C.muted} />
+            <text x={18} y={28} fill={C.head} fontWeight={700}>{"<<<<<<< HEAD"}</text>
+            <text x={18} y={44} fill="#a5f3fc">{"# Portal RPA v2"}</text>
+            <text x={18} y={60} fill={C.yellow} fontWeight={700}>{"======="}</text>
+            <text x={18} y={76} fill="#f5d0fe">{"# Portal RPA — Intranet"}</text>
+            <text x={18} y={92} fill={C.violet} fontWeight={700}>{">>>>>>> feature/titulo"}</text>
+            <text x={200} y={44} className="lbl" fill={C.head}>← seu lado (onde você está)</text>
+            <text x={200} y={76} className="lbl" fill={C.violet}>← lado que chega</text>
+            <text x={18} y={112} className="lbl">Resolver = escrever a versão final e apagar as 3 linhas de marcador.</text>
+          </>
+        ),
+        };
     case "rebase":
-      return (
-        <svg className="diagram" viewBox="0 0 320 130">
-          <text x={10} y={18} className="lbl">antes</text>
-          <Line x1={30} y1={40} x2={130} y2={40} color={C.main} />
-          <Curve x1={80} y1={40} x2={130} y2={20} color={C.feat} />
-          <Node x={30} y={40} color={C.main} r={7} />
-          <Node x={80} y={40} color={C.main} r={7} />
-          <Node x={130} y={40} color={C.main} r={7} />
-          <Node x={130} y={20} color={C.feat} r={7} />
-          <Tag x={165} y={40} text="main" color={C.main} />
-          <Tag x={172} y={18} text="feature" color={C.feat} />
-          <text x={10} y={80} className="lbl">depois de git rebase main</text>
-          <Line x1={30} y1={105} x2={180} y2={105} color={C.main} />
-          <Node x={30} y={105} color={C.main} r={7} />
-          <Node x={80} y={105} color={C.main} r={7} />
-          <Node x={130} y={105} color={C.main} r={7} />
-          <Node x={180} y={105} color={C.feat} r={7} label="c4'" />
-          <Tag x={130} y={125} text="main" color={C.main} />
-          <Tag x={222} y={105} text="feature" color={C.feat} />
-          <text x={210} y={70} className="lbl" fill={C.feat}>commit reaplicado</text>
-          <text x={210} y={82} className="lbl" fill={C.feat}>(hash novo)</text>
-        </svg>
-      );
+      return {
+        viewBox: "0 0 320 130",
+        children: (
+          <>
+            <text x={10} y={18} className="lbl">antes</text>
+            <Line x1={30} y1={40} x2={130} y2={40} color={C.main} />
+            <Curve x1={80} y1={40} x2={130} y2={20} color={C.feat} />
+            <Node x={30} y={40} color={C.main} r={7} />
+            <Node x={80} y={40} color={C.main} r={7} />
+            <Node x={130} y={40} color={C.main} r={7} />
+            <Node x={130} y={20} color={C.feat} r={7} />
+            <Tag x={165} y={40} text="main" color={C.main} />
+            <Tag x={172} y={18} text="feature" color={C.feat} />
+            <text x={10} y={80} className="lbl">depois de git rebase main</text>
+            <Line x1={30} y1={105} x2={180} y2={105} color={C.main} />
+            <Node x={30} y={105} color={C.main} r={7} />
+            <Node x={80} y={105} color={C.main} r={7} />
+            <Node x={130} y={105} color={C.main} r={7} />
+            <Node x={180} y={105} color={C.feat} r={7} label="c4'" />
+            <Tag x={130} y={125} text="main" color={C.main} />
+            <Tag x={222} y={105} text="feature" color={C.feat} />
+            <text x={210} y={70} className="lbl" fill={C.feat}>commit reaplicado</text>
+            <text x={210} y={82} className="lbl" fill={C.feat}>(hash novo)</text>
+          </>
+        ),
+        };
     case "trunk":
-      return (
-        <svg className="diagram" viewBox="0 0 320 120">
-          <Line x1={20} y1={60} x2={300} y2={60} color={C.main} />
-          {[40, 90, 140, 190, 240, 290].map((x, i) => (
-            <Node key={x} x={x} y={60} color={i % 3 === 1 ? C.violet : i % 3 === 2 ? C.feat : C.main} r={7} />
-          ))}
-          <text x={40} y={40} textAnchor="middle" className="lbl">você</text>
-          <text x={90} y={40} textAnchor="middle" className="lbl" fill={C.violet}>ana</text>
-          <text x={140} y={40} textAnchor="middle" className="lbl" fill={C.feat}>carlos</text>
-          <text x={190} y={40} textAnchor="middle" className="lbl">você</text>
-          <text x={240} y={40} textAnchor="middle" className="lbl" fill={C.violet}>ana</text>
-          <Tag x={290} y={88} text="origin/main" color={C.remote} />
-          <text x={18} y={110} className="lbl">commit pequeno → git pull --rebase → git push · várias vezes por dia</text>
-        </svg>
-      );
+      return {
+        viewBox: "0 0 320 120",
+        children: (
+          <>
+            <Line x1={20} y1={60} x2={300} y2={60} color={C.main} />
+            {[40, 90, 140, 190, 240, 290].map((x, i) => (
+              <Node key={x} x={x} y={60} color={i % 3 === 1 ? C.violet : i % 3 === 2 ? C.feat : C.main} r={7} />
+            ))}
+            <text x={40} y={40} textAnchor="middle" className="lbl">você</text>
+            <text x={90} y={40} textAnchor="middle" className="lbl" fill={C.violet}>ana</text>
+            <text x={140} y={40} textAnchor="middle" className="lbl" fill={C.feat}>carlos</text>
+            <text x={190} y={40} textAnchor="middle" className="lbl">você</text>
+            <text x={240} y={40} textAnchor="middle" className="lbl" fill={C.violet}>ana</text>
+            <Tag x={290} y={88} text="origin/main" color={C.remote} />
+            <text x={18} y={110} className="lbl">commit pequeno → git pull --rebase → git push · várias vezes por dia</text>
+          </>
+        ),
+        };
     case "stash":
-      return (
-        <svg className="diagram" viewBox="0 0 320 110">
-          <Box x={10} y={14} w={120} h={80} title="working dir" color={C.yellow}>
-            <text x={70} y={55} textAnchor="middle">relatorio.php *</text>
-          </Box>
-          <Box x={190} y={14} w={120} h={80} title="stash (gaveta)" color={C.violet}>
-            <text x={250} y={55} textAnchor="middle">stash@{"{0}"}</text>
-          </Box>
-          <Arrow x1={132} y1={44} x2={188} y2={44} color={C.text} />
-          <text x={160} y={38} textAnchor="middle" className="lbl">git stash</text>
-          <Arrow x1={188} y1={70} x2={132} y2={70} color={C.text} />
-          <text x={160} y={84} textAnchor="middle" className="lbl">git stash pop</text>
-        </svg>
-      );
+      return {
+        viewBox: "0 0 320 110",
+        children: (
+          <>
+            <Box x={10} y={14} w={120} h={80} title="working dir" color={C.yellow}>
+              <text x={70} y={55} textAnchor="middle">relatorio.php *</text>
+            </Box>
+            <Box x={190} y={14} w={120} h={80} title="stash (gaveta)" color={C.violet}>
+              <text x={250} y={55} textAnchor="middle">stash@{"{0}"}</text>
+            </Box>
+            <Arrow x1={132} y1={44} x2={188} y2={44} color={C.text} />
+            <text x={160} y={38} textAnchor="middle" className="lbl">git stash</text>
+            <Arrow x1={188} y1={70} x2={132} y2={70} color={C.text} />
+            <text x={160} y={84} textAnchor="middle" className="lbl">git stash pop</text>
+          </>
+        ),
+        };
     case "detached":
-      return (
-        <svg className="diagram" viewBox="0 0 320 100">
-          <Line x1={40} y1={55} x2={220} y2={55} color={C.main} />
-          <Node x={40} y={55} color={C.main} label="c1" />
-          <Node x={100} y={55} color={C.main} label="c2" />
-          <Node x={160} y={55} color={C.main} label="c3" />
-          <Node x={220} y={55} color={C.main} label="c4" />
-          <Tag x={220} y={22} text="main" color={C.main} />
-          <Tag x={100} y={22} text="HEAD" color={C.head} />
-          <text x={240} y={60} className="lbl" fill={C.head}>HEAD fora da branch</text>
-          <text x={240} y={72} className="lbl" fill={C.head}>= "desanexado"</text>
-        </svg>
-      );
+      return {
+        viewBox: "0 0 320 100",
+        children: (
+          <>
+            <Line x1={40} y1={55} x2={220} y2={55} color={C.main} />
+            <Node x={40} y={55} color={C.main} label="c1" />
+            <Node x={100} y={55} color={C.main} label="c2" />
+            <Node x={160} y={55} color={C.main} label="c3" />
+            <Node x={220} y={55} color={C.main} label="c4" />
+            <Tag x={220} y={22} text="main" color={C.main} />
+            <Tag x={100} y={22} text="HEAD" color={C.head} />
+            <text x={240} y={60} className="lbl" fill={C.head}>HEAD fora da branch</text>
+            <text x={240} y={72} className="lbl" fill={C.head}>= "desanexado"</text>
+          </>
+        ),
+        };
     case "revert":
-      return (
-        <svg className="diagram" viewBox="0 0 320 120">
-          <text x={10} y={18} className="lbl">reset: apaga (só local)</text>
-          <Line x1={30} y1={40} x2={90} y2={40} color={C.main} />
-          <Line x1={90} y1={40} x2={150} y2={40} color={C.muted} dashed />
-          <Node x={30} y={40} color={C.main} r={7} />
-          <Node x={90} y={40} color={C.main} r={7} />
-          <Node x={150} y={40} color={C.muted} r={7} label="apagado" />
-          <Tag x={90} y={18} text="main" color={C.main} />
-          <text x={10} y={78} className="lbl">revert: adiciona o inverso (seguro no remoto)</text>
-          <Line x1={30} y1={100} x2={210} y2={100} color={C.main} />
-          <Node x={30} y={100} color={C.main} r={7} />
-          <Node x={90} y={100} color={C.main} r={7} />
-          <Node x={150} y={100} color={C.red} r={7} label="bug" />
-          <Node x={210} y={100} color={C.feat} r={7} label="revert" />
-          <Tag x={250} y={100} text="main" color={C.main} />
-        </svg>
-      );
+      return {
+        viewBox: "0 0 320 120",
+        children: (
+          <>
+            <text x={10} y={18} className="lbl">reset: apaga (só local)</text>
+            <Line x1={30} y1={40} x2={90} y2={40} color={C.main} />
+            <Line x1={90} y1={40} x2={150} y2={40} color={C.muted} dashed />
+            <Node x={30} y={40} color={C.main} r={7} />
+            <Node x={90} y={40} color={C.main} r={7} />
+            <Node x={150} y={40} color={C.muted} r={7} label="apagado" />
+            <Tag x={90} y={18} text="main" color={C.main} />
+            <text x={10} y={78} className="lbl">revert: adiciona o inverso (seguro no remoto)</text>
+            <Line x1={30} y1={100} x2={210} y2={100} color={C.main} />
+            <Node x={30} y={100} color={C.main} r={7} />
+            <Node x={90} y={100} color={C.main} r={7} />
+            <Node x={150} y={100} color={C.red} r={7} label="bug" />
+            <Node x={210} y={100} color={C.feat} r={7} label="revert" />
+            <Tag x={250} y={100} text="main" color={C.main} />
+          </>
+        ),
+        };
     default:
       return null;
   }

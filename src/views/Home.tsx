@@ -32,7 +32,7 @@ export function Home() {
     <div className="home">
       <motion.div className="hero" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <span className="pill" style={{ marginBottom: 16 }}>
-          🥋 Treinamento de Git · RPA Tecnologia
+          <span aria-hidden="true">🥋 </span>Treinamento de Git · RPA Tecnologia
         </span>
         <h1>
           Aprenda Git <span className="grad">fazendo</span>, não lendo.
@@ -50,22 +50,22 @@ export function Home() {
             maxLength={40}
           />
           <button className="btn btn-primary" onClick={start} disabled={!name.trim()}>
-            {done > 0 ? "Continuar treinamento" : "Começar o treinamento"} <ArrowRight size={16} />
+            {done > 0 ? "Continuar treinamento" : "Começar o treinamento"} <ArrowRight size={16} aria-hidden="true" />
           </button>
         </div>
         <div className="feature-grid">
           <div className="card feature">
-            <TerminalIcon size={18} color="var(--cyan)" />
+            <TerminalIcon size={18} color="var(--cyan)" aria-hidden="true" />
             <b>Terminal simulado</b>
             <span>Digite os comandos do Git em um repositório de treino. Erros viram aprendizado, não estrago.</span>
           </div>
           <div className="card feature">
-            <GitMerge size={18} color="var(--violet)" />
+            <GitMerge size={18} color="var(--violet)" aria-hidden="true" />
             <b>Grafo ao vivo</b>
             <span>Veja branches nascerem, HEAD se mover e merges formarem losangos.</span>
           </div>
           <div className="card feature">
-            <Trophy size={18} color="var(--yellow)" />
+            <Trophy size={18} color="var(--yellow)" aria-hidden="true" />
             <b>XP, níveis e chefões</b>
             <span>{MODULES.length} módulos, conquistas e um certificado no final.</span>
           </div>
@@ -73,7 +73,7 @@ export function Home() {
       </motion.div>
 
       <motion.div className="hero-visual" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15, duration: 0.5 }}>
-        <div className="terminal-preview">
+        <div className="terminal-preview" role="img" aria-label="Exemplo de sessão no terminal do Dojo: um merge com conflito, resolvido e concluído com XP e uma conquista">
           <div className="dots">
             <i />
             <i />

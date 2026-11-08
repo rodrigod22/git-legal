@@ -16,9 +16,9 @@ const ICONS: Record<Module["icon"], React.ReactNode> = {
 
 export function Stars({ n, size = 12 }: { n: number; size?: number }) {
   return (
-    <span className="stars" style={{ fontSize: size }}>
+    <span className="stars" style={{ fontSize: size }} role="img" aria-label={`${n} de 3 estrelas`}>
       {[1, 2, 3].map((i) => (
-        <span key={i} className={i <= n ? "" : "off"}>
+        <span key={i} className={i <= n ? "" : "off"} aria-hidden="true">
           ★
         </span>
       ))}
@@ -38,7 +38,7 @@ export function DojoMap() {
       <div className="map-head">
         <div>
           <div className="muted small">Olá, {playerName} · {lv.level.name} — {lv.level.title}</div>
-          <h2>Trilha do Dojo</h2>
+          <h1>Trilha do Dojo</h1>
           <div className="muted" style={{ marginTop: 6 }}>
             {done}/{ALL_MISSIONS.length} missões · {xp}/{MAX_XP} XP possíveis
           </div>
@@ -46,12 +46,12 @@ export function DojoMap() {
         <div className="row" style={{ flexWrap: "wrap" }}>
           {nextMission && (
             <button className="btn btn-primary" onClick={() => startMission(nextMission.id)}>
-              ▶ Continuar: {nextMission.title}
+              <span aria-hidden="true">▶ </span>Continuar: {nextMission.title}
             </button>
           )}
           {allDone && (
             <button className="btn btn-primary" onClick={() => go("certificate")}>
-              <Award size={16} /> Ver certificado
+              <Award size={16} aria-hidden="true" /> Ver certificado
             </button>
           )}
           {done > 0 && (
@@ -62,7 +62,7 @@ export function DojoMap() {
               }}
               title="Zerar progresso"
             >
-              <RotateCcw size={14} /> zerar
+              <RotateCcw size={14} aria-hidden="true" /> zerar progresso
             </button>
           )}
         </div>
@@ -74,16 +74,17 @@ export function DojoMap() {
           return (
             <motion.div key={mod.id} className="card module" style={{ ["--mc" as string]: mod.color }} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: mi * 0.06 }}>
               <div className="module-head">
-                <span className="module-icon">{ICONS[mod.icon]}</span>
+                <span className="module-icon" aria-hidden="true">{ICONS[mod.icon]}</span>
                 <div>
-                  <h3>
+                  <h2>
                     {mi + 1}. {mod.title}
-                  </h3>
+                  </h2>
                   <div className="sub">{mod.subtitle}</div>
                 </div>
                 <span className="grow" />
                 <span className="pill">
                   {mp.done}/{mp.total}
+                  <span className="sr-only"> missões concluídas</span>
                 </span>
               </div>
               <p className="desc">{mod.description}</p>
@@ -93,9 +94,12 @@ export function DojoMap() {
                   const unlocked = isUnlocked(progress, m.id);
                   return (
                     <button key={m.id} className={`mission-row ${entry ? "done" : ""} ${m.boss ? "boss" : ""}`} disabled={!unlocked} onClick={() => startMission(m.id)} title={unlocked ? m.tagline : "Conclua a missão anterior para desbloquear"}>
-                      <span className="num">{entry ? <Check size={14} /> : unlocked ? (m.boss ? "👑" : i + 1) : <Lock size={12} />}</span>
+                      <span className="num" aria-hidden="true">{entry ? <Check size={14} /> : unlocked ? (m.boss ? "👑" : i + 1) : <Lock size={12} />}</span>
                       <span className="t">
-                        <b>{m.title}</b>
+                        <b>
+                          {m.title}
+                          <span className="sr-only">{entry ? " (concluída)" : unlocked ? (m.boss ? " (chefão)" : "") : " (bloqueada: conclua a missão anterior)"}</span>
+                        </b>
                         <span>{m.tagline}</span>
                       </span>
                       {entry ? <Stars n={entry.stars} /> : <span className="small muted mono">+{m.xp} XP</span>}
@@ -103,7 +107,7 @@ export function DojoMap() {
                   );
                 })}
               </div>
-              <div className="module-progress">
+              <div className="module-progress" role="progressbar" aria-label={`Progresso do módulo ${mod.title}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(mp.pct * 100)}>
                 <motion.i initial={false} animate={{ width: `${mp.pct * 100}%` }} />
               </div>
             </motion.div>

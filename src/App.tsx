@@ -26,12 +26,14 @@ export default function App() {
   return (
     <>
       <Topbar />
-      {effective === "home" && <Home />}
-      {effective === "map" && <DojoMap />}
-      {effective === "mission" && <MissionView />}
-      {effective === "badges" && <Badges />}
-      {effective === "certificate" && <Certificate />}
-      {effective === "cheatsheet" && <Cheatsheet />}
+      <main>
+        {effective === "home" && <Home />}
+        {effective === "map" && <DojoMap />}
+        {effective === "mission" && <MissionView />}
+        {effective === "badges" && <Badges />}
+        {effective === "certificate" && <Certificate />}
+        {effective === "cheatsheet" && <Cheatsheet />}
+      </main>
       <Toasts />
       <MissionComplete />
     </>
