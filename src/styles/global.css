@@ -212,8 +212,11 @@ textarea {
   display: grid;
   place-items: center;
 }
+/* só para leitor de tela; top/left fixos para o elemento não "escapar" de painéis com rolagem e esticar a página */
 .sr-only {
   position: absolute;
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
   overflow: hidden;
@@ -441,7 +444,7 @@ textarea {
   color: var(--mc);
   border: 1px solid color-mix(in srgb, var(--mc) 35%, transparent);
 }
-.module h3 {
+.module h2 {
   font-size: 18px;
 }
 .module .sub {
@@ -1318,6 +1321,8 @@ textarea {
   /* o rótulo some da tela, mas continua no nome acessível do botão */
   .nav-label {
     position: absolute;
+    top: 0;
+    left: 0;
     width: 1px;
     height: 1px;
     overflow: hidden;
