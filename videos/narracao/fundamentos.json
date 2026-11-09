@@ -1,0 +1,13 @@
+{
+  "falas": [
+    { "inicio": 1.0, "fim": 7.0, "texto": "Fundamentos: as três áreas do Git, de onde vem cada comando." },
+    { "inicio": 7.6, "fim": 17.0, "texto": "Você recebeu uma pasta comum. Ninguém sabe quem mudou o quê, nem quando. Sua primeira tarefa é colocar o projeto sob controle de versão." },
+    { "inicio": 17.6, "fim": 26.0, "texto": "git init. A pasta virou um repositório, e cada mudança agora pode virar história." },
+    { "inicio": 26.6, "fim": 31.4, "texto": "O Git tem três áreas. O working dir é o disco." },
+    { "inicio": 31.5, "fim": 36.2, "texto": "git add leva o arquivo para a staging, a bandeja do próximo commit." },
+    { "inicio": 36.3, "fim": 42.0, "texto": "git commit grava a bandeja no repositório." },
+    { "inicio": 42.6, "fim": 47.0, "texto": "Na dúvida, git status: ele diz em que área cada arquivo está." },
+    { "inicio": 47.2, "fim": 52.0, "texto": "Um commit, uma intenção: cada commit conta uma única história." },
+    { "inicio": 52.8, "fim": 60.0, "texto": "Tudo no Git passa por essas três áreas. Agora é com você." }
+  ]
+}

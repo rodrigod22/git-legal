@@ -11,6 +11,7 @@
     "check": "hyperframes check",
     "render": "node ferramentas/renderizar.mjs",
     "audio": "python -I ferramentas/gerar-audio.py",
+    "voz": ".venv-kokoro\\Scripts\\python.exe -I -X utf8 ferramentas/gerar-narracao.py",
     "conferir": "node ferramentas/conferir-renders.mjs"
   },
   "dependencies": {

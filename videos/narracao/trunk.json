@@ -1,0 +1,13 @@
+{
+  "falas": [
+    { "inicio": 1.0, "fim": 7.0, "texto": "Trunk-based: o fluxo oficial da Iron Systems." },
+    { "inicio": 7.6, "fim": 12.8, "texto": "Você commitou, mas a Ana fez push antes." },
+    { "inicio": 12.9, "fim": 18.0, "texto": "O remoto rejeita: só aceita push quando o que ele tem é ancestral do seu commit." },
+    { "inicio": 18.6, "fim": 28.0, "texto": "git pull --rebase reaplica seus commits por cima dos da Ana. Agora o push entra. Histórico linear." },
+    { "inicio": 28.6, "fim": 33.0, "texto": "Todo mundo na mesma linha." },
+    { "inicio": 33.2, "fim": 42.0, "texto": "O ritual: commit pequeno, pull --rebase, push, várias vezes por dia. Pequeno e frequente vence grande e raro." },
+    { "inicio": 42.6, "fim": 48.0, "texto": "Na main, push --force e reset são proibidos, porque a main está na máquina de todo mundo." },
+    { "inicio": 48.2, "fim": 52.0, "texto": "Para desfazer, revert: um commit novo, nada apagado." },
+    { "inicio": 52.8, "fim": 60.0, "texto": "Commit pequeno, pull --rebase, push. Várias vezes por dia." }
+  ]
+}

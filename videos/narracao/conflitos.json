@@ -1,0 +1,10 @@
+{
+  "falas": [
+    { "inicio": 1.0, "fim": 7.0, "texto": "Conflitos: o que acontece quando duas pessoas mudam a mesma linha." },
+    { "inicio": 7.6, "fim": 18.0, "texto": "Você mudou o título do README na sua branch. Ao mesmo tempo, o Carlos mudou a mesma linha na main." },
+    { "inicio": 18.6, "fim": 27.0, "texto": "Ao fazer o merge, o Git para: conflito. Ele não tem como decidir sozinho e pede uma decisão humana." },
+    { "inicio": 27.6, "fim": 41.0, "texto": "O arquivo ganha três marcadores. Da linha dos sinais de menor, com HEAD, até a linha dos sinais de igual, está o seu lado, a branch onde você está. Dali até a linha dos sinais de maior, está o lado que está chegando." },
+    { "inicio": 41.6, "fim": 51.0, "texto": "Resolver é decidir: pode ficar um lado, o outro, ou os dois juntos. Edite o arquivo até ficar do jeito certo e apague os três marcadores." },
+    { "inicio": 51.6, "fim": 60.0, "texto": "Depois, git add marca o arquivo como resolvido, e git commit fecha o merge. Conflito não é erro: é o Git pedindo uma decisão." }
+  ]
+}

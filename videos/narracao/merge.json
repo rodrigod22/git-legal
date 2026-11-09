@@ -1,0 +1,11 @@
+{
+  "falas": [
+    { "inicio": 1.0, "fim": 7.0, "texto": "Merge: integrando o trabalho, do fast-forward ao merge de três vias." },
+    { "inicio": 7.6, "fim": 17.0, "texto": "A feature ficou pronta e a main não andou. Hora de trazer o trabalho de volta." },
+    { "inicio": 17.6, "fim": 27.0, "texto": "Como a main não andou, o merge é só o ponteiro avançando: fast-forward. Nenhum commit novo." },
+    { "inicio": 27.6, "fim": 33.0, "texto": "São dois jeitos de integrar. No fast-forward, o ponteiro só anda." },
+    { "inicio": 33.2, "fim": 42.0, "texto": "Quando as duas branches andaram, o Git compara a base com os dois lados e cria um commit de merge, com dois pais." },
+    { "inicio": 42.6, "fim": 52.0, "texto": "Faça o merge na branch que recebe. Partes diferentes se combinam sozinhas; a mesma linha vira conflito. E --no-ff é opção, não regra." },
+    { "inicio": 52.8, "fim": 60.0, "texto": "Fast-forward quando dá, commit de merge quando precisa." }
+  ]
+}

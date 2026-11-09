@@ -1,0 +1,12 @@
+{
+  "falas": [
+    { "inicio": 1.0, "fim": 7.0, "texto": "Branches: linhas paralelas de trabalho, sem quebrar a main." },
+    { "inicio": 7.3, "fim": 17.0, "texto": "A tela de login leva vários commits. Na Iron Systems, o padrão é commitar direto na main; nesses casos, quem preferir usa uma branch local curta." },
+    { "inicio": 17.6, "fim": 26.0, "texto": "git switch -c cria a branch e já troca para ela. Uma branch é só um ponteiro: criar é instantâneo." },
+    { "inicio": 26.6, "fim": 33.0, "texto": "Branch é um ponteiro, e o HEAD diz onde você está." },
+    { "inicio": 33.2, "fim": 42.0, "texto": "Ao commitar, só a branch onde o HEAD está avança. A main fica onde estava." },
+    { "inicio": 42.3, "fim": 46.1, "texto": "Vida curta: a branch nasce e volta para a main no mesmo dia." },
+    { "inicio": 46.1, "fim": 52.0, "texto": "Demorou dias? A tarefa é grande demais. Teve que parar no meio? git stash guarda o trabalho." },
+    { "inicio": 52.8, "fim": 60.0, "texto": "Branch é um ponteiro barato. Use quando precisar. Agora é com você." }
+  ]
+}

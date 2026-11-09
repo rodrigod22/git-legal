@@ -1,0 +1,12 @@
+{
+  "falas": [
+    { "inicio": 1.0, "fim": 7.0, "texto": "Zona de Perigo: reescrever e resgatar história, com consciência." },
+    { "inicio": 7.6, "fim": 17.0, "texto": "Três commits de rascunho que ainda não saíram da sua máquina. Antes do push, o time merece um commit limpo." },
+    { "inicio": 17.6, "fim": 27.0, "texto": "reset --soft volta a branch três commits e deixa as mudanças na bandeja. Um commit só, com nome de verdade." },
+    { "inicio": 27.6, "fim": 36.0, "texto": "--soft mantém tudo; --mixed limpa a staging; --hard descarta tudo." },
+    { "inicio": 36.2, "fim": 41.0, "texto": "Só em commits que nunca saíram da sua máquina. Na main, revert." },
+    { "inicio": 41.6, "fim": 46.7, "texto": "Apagou a branch errada? O reflog é o diário do HEAD." },
+    { "inicio": 46.8, "fim": 52.0, "texto": "Os commits continuam lá por semanas; uma branch nova no hash traz tudo de volta." },
+    { "inicio": 52.8, "fim": 60.0, "texto": "Poder exige consciência: reset só no local, reflog é a rede de segurança." }
+  ]
+}
