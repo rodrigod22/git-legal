@@ -24,7 +24,7 @@ npm run build    # gera dist/ (estático)
 
 ## Publicar
 
-O Dojo está publicado na VPS da empresa, em `https://gitdojo.rpatecnologia.com.br`, com login e senha por dev. Por enquanto o login é a janela de senha do próprio navegador (autenticação básica do Nginx); uma tela de login no visual do Dojo, com botão "Sair", é a próxima entrega. Publicar é `git push production master`: um hook no servidor faz o build e sincroniza `dist/`. Como cadastrar devs, ligar o HTTPS e conferir o site publicado está em [deploy/README.md](deploy/README.md).
+O Dojo está publicado na VPS da empresa, em `https://gitdojo.rpatecnologia.com.br`, com login e senha por dev. Quem chega sem sessão vê a tela de login do Dojo (`/login/`); a sessão dura 30 dias, e o botão "Sair" da barra do topo encerra. O progresso continua no navegador de cada um, não na conta. Publicar é `git push production master`: um hook no servidor faz o build e sincroniza `dist/`. Como cadastrar devs, como a tela de login funciona, o HTTPS e como conferir o site publicado estão em [deploy/README.md](deploy/README.md).
 
 Fora desse servidor, o build é estático (`dist/`). Basta copiar a pasta inteira para qualquer servidor web — no WAMP, por exemplo, para `C:\wamp64\www\git-dojo` e abrir `http://localhost/git-dojo/`. O `base: "./"` no Vite permite servir de qualquer subpasta; isso foi conferido servindo `dist/` como `/git-dojo/` em um servidor estático comum.
 
@@ -71,7 +71,6 @@ O motor cobre os comandos do treinamento, não o Git inteiro:
 
 ## Próximos passos
 
-- Tela de login própria no lugar da janela de senha do navegador, com o mesmo cadastro e as mesmas senhas.
 - Mandar o link e os logins aos devs: o piloto é aberto e opcional. Novos logins: ver `deploy/README.md`.
 - Narração nos vídeos de abertura (o texto de cada uma já está nos roteiros da Fase 2).
 - Backend Laravel com ranking da empresa (o store já isola o progresso em `progress`/`xp`/`badges`).
