@@ -58,7 +58,8 @@ Todos os roteiros terminam com um resumo `OK`/`FALHA` e com "sem erros na págin
 ## Observações
 
 - A máquina pode ter um antivírus (Kaspersky) que injeta um script nas páginas, inclusive nas HTTPS do site publicado, onde a CSP o barra e o Chrome registra um erro no console. Os roteiros ignoram a origem `kaspersky-labs.com` nas requisições e nas mensagens do console.
-- `check-1b-impressao.mjs` acusa a Cola em 2 páginas desde antes da Etapa 1H (o certificado continua em 1); está registrado no plano.
+- `check-1b-impressao.mjs` espera a Cola e o certificado em uma página A4 cada. Na impressão, a Cola usa duas colunas de fluxo (`column-count`), e não a grade da tela, com o corpo em 8 pt; sobram cerca de 17 mm no pé da folha. Se uma seção nova da Cola não couber, o roteiro acusa 2 páginas.
+- O Firefox não entra no `playwright-core` sem o navegador próprio do Playwright. Para gerar o PDF no Firefox instalado, abra-o com `--headless --remote-debugging-port <porta> --profile <pasta-vazia>` e use WebDriver BiDi (`browsingContext.print` com `shrinkToFit: false`, A4 e margens de 1,2 cm). O `WebSocket` nativo do Node 24 basta.
 - `check-1g-toasts.mjs` às vezes falha por tempo numa rodada e passa na seguinte; repita antes de concluir que quebrou.
 - O toast de conquista só aparece quando a missão conclui de verdade. Os roteiros esperam cerca de 300 ms entre comandos por isso.
 - Os nomes `1b`, `1f`, `1g` referem-se às etapas do plano de implementação em que cada roteiro nasceu.
