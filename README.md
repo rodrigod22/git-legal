@@ -10,6 +10,7 @@ Treinamento interativo e gamificado de Git para estagiários e devs: **branches,
 - **Editor com resolvedor de conflitos** (manter atual / entrada / ambos).
 - **23 missões em 6 módulos** (`src/content/modules/`), com objetivos verificados automaticamente, dicas, cola de comandos, "colegas" que fazem push no meio da missão e um chefão.
 - **Regras do fluxo da Iron Systems**, validadas e resumidas no topo da Cola: commit direto na `main`, branch local curta opcional, correções com prefixo `fix:`, `pull --rebase` antes do push, `push --force` e `reset` proibidos na `main`, GitHub sem Pull Request.
+- **Cola imprimível em uma folha A4**: na impressão, as sete seções vão em duas colunas, com corpo de 8 pt e cores para papel. Ao acrescentar uma seção, confira com `npm run check:impressao` (ver `scripts/README.md`); sobram cerca de 17 mm no pé da folha.
 - **Gamificação**: XP, 5 níveis, 3 estrelas por missão, 9 conquistas, certificado imprimível.
 - **Playground** para experimentar livremente.
 
