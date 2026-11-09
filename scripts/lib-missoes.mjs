@@ -97,6 +97,31 @@ export async function dispensaVideo(page) {
   }
 }
 
+/**
+ * Grava no localStorage as 23 missões concluídas e recarrega a página, conferindo depois do reload.
+ * O app aberto grava o próprio estado de tempos em tempos; se ele gravar entre o setItem e o reload (mais
+ * provável no site publicado, onde o reload demora mais), o progresso some. Aí a função tenta de novo.
+ */
+export async function aplicaProgressoCompleto(page, xp = 2931) {
+  const progresso = progressoCompleto(idsDasMissoes());
+  for (let tentativa = 1; tentativa <= 3; tentativa++) {
+    await page.evaluate(
+      ([progress, pontos]) => {
+        const salvo = JSON.parse(localStorage.getItem("git-dojo-v1"));
+        salvo.state.progress = progress;
+        salvo.state.xp = pontos;
+        localStorage.setItem("git-dojo-v1", JSON.stringify(salvo));
+      },
+      [progresso, xp],
+    );
+    await page.reload();
+    await page.waitForTimeout(900);
+    const n = await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem("git-dojo-v1") ?? "{}").state?.progress ?? {}).length);
+    if (n === Object.keys(progresso).length) return;
+  }
+  throw new Error("o progresso gravado no localStorage não sobreviveu ao reload em 3 tentativas");
+}
+
 export function progressoCompleto(ids) {
   return Object.fromEntries(ids.map((id) => [id, { completedAt: 1, stars: 3, xp: 1, hintsUsed: 0, errors: 0, commands: 1, seconds: 1 }]));
 }

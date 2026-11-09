@@ -17,7 +17,7 @@ const prefixo = `${channel}-${formato}`;
 const errors = [];
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
 page.on("console", (m) => {
-  if (m.type() === "error" && !/fonts\.g|ERR_/.test(m.text())) errors.push("console: " + m.text());
+  if (m.type() === "error" && !/fonts\.g|ERR_|kaspersky/i.test(m.text())) errors.push("console: " + m.text());
 });
 
 const results = [];

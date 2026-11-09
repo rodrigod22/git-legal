@@ -37,7 +37,7 @@ page.on("response", (r) => {
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
 page.on("console", (m) => {
   const origem = m.location()?.url ?? "";
-  if (m.type() === "error" && !ambiente.test(origem) && !(origem && semLogin(origem, 404) && /404/.test(m.text()))) errors.push("console: " + m.text());
+  if (m.type() === "error" && !ambiente.test(origem) && !ambiente.test(m.text()) && !(origem && semLogin(origem, 404) && /404/.test(m.text()))) errors.push("console: " + m.text());
 });
 
 const results = [];

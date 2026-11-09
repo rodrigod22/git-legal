@@ -11,7 +11,7 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
 page.on("console", (m) => {
-  if (m.type() === "error" && !/fonts\.g/.test(m.text())) errors.push("console: " + m.text());
+  if (m.type() === "error" && !/fonts\.g|kaspersky/i.test(m.text())) errors.push("console: " + m.text());
 });
 
 const results = [];

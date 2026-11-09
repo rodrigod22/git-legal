@@ -5,7 +5,7 @@ import { chromium, devices } from "playwright-core";
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
-import { idsDasMissoes, progressoCompleto, dispensaVideo, entraNoSite, argsDoChrome, abreTelaDeLogin } from "./lib-missoes.mjs";
+import { aplicaProgressoCompleto, dispensaVideo, entraNoSite, argsDoChrome, abreTelaDeLogin } from "./lib-missoes.mjs";
 
 let telaDeLogin = "";
 
@@ -56,7 +56,7 @@ for (const [perfil, opcoes] of Object.entries(PERFIS)) {
   const page = await context.newPage();
   page.on("pageerror", (e) => errosPagina.push(`${perfil}: pageerror: ${e.message}`));
   page.on("console", (m) => {
-    if (m.type() === "error" && !ambiente.test(m.location()?.url ?? "") && !/ERR_/.test(m.text())) errosPagina.push(`${perfil}: console: ${m.text()}`);
+    if (m.type() === "error" && !ambiente.test(m.location()?.url ?? "") && !ambiente.test(m.text()) && !/ERR_/.test(m.text())) errosPagina.push(`${perfil}: console: ${m.text()}`);
   });
   const input = page.locator("input[aria-label='Linha de comando']");
   const type = async (cmd) => {
@@ -124,14 +124,7 @@ for (const [perfil, opcoes] of Object.entries(PERFIS)) {
   await auditar(page, perfil, "8-cola");
 
   // 9. certificado, com progresso completo
-  await page.evaluate((progress) => {
-    const salvo = JSON.parse(localStorage.getItem("git-dojo-v1"));
-    salvo.state.progress = progress;
-    salvo.state.xp = 2931;
-    localStorage.setItem("git-dojo-v1", JSON.stringify(salvo));
-  }, progressoCompleto(idsDasMissoes()));
-  await page.reload();
-  await page.waitForTimeout(900);
+  await aplicaProgressoCompleto(page);
   await page.getByRole("button", { name: /Continuar|Começar/ }).click();
   await dispensaVideo(page);
   await page.waitForTimeout(600);
