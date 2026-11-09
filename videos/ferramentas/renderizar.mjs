@@ -2,8 +2,8 @@
 // Uso: node ferramentas/renderizar.mjs [modulo ...] [--crf 24] [--sem-copia] [--so-checar] [--sem-check]
 //   sem módulo: todos (fundamentos branches merge conflitos trunk perigo)
 //
-// Antes de renderizar, converte assets/audio/musica-<modulo>.wav em .m4a quando o .m4a faltar
-// (o .wav não entra no Git; gere com `npm run audio`).
+// Antes de renderizar, confere que a narração assets/audio/voz-<modulo>.m4a existe (gere com `npm run voz`;
+// só o .m4a entra no Git). Os vídeos não têm música desde 08/11/2026: só voz e efeitos.
 //
 // `hyperframes check` e `snapshot` só olham o index.html do projeto, e uma composição montada com
 // data-start diferente de zero não ativa as cenas internas. Por isso este script reescreve o index.html
@@ -44,13 +44,8 @@ function restaura() {
 process.on("exit", restaura);
 
 for (const m of lista) {
-  const wav = path.join(raiz, "assets", "audio", "musica-" + m + ".wav");
-  const m4a = path.join(raiz, "assets", "audio", "musica-" + m + ".m4a");
-  if (!existsSync(m4a)) {
-    if (!existsSync(wav)) { console.error("falta " + wav + " (rode npm run audio)"); process.exit(1); }
-    console.log("== áudio " + m);
-    if (roda(ffmpeg, ["-y", "-v", "error", "-i", wav, "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", m4a])) process.exit(1);
-  }
+  const voz = path.join(raiz, "assets", "audio", "voz-" + m + ".m4a");
+  if (!existsSync(voz)) { console.error("falta " + voz + " (rode npm run voz -- " + m + ")"); process.exit(1); }
 }
 
 const t0 = Date.now();
