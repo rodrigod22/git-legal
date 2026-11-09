@@ -47,7 +47,7 @@ Depois de criar uma missão, adicione a solução em `src/content/missions.test.
 
 ## Vídeos de abertura
 
-Cada módulo tem um vídeo de 60 s, sem voz, com música e efeitos, que abre antes da primeira missão do módulo (botão "Pular" sempre à mão) e pode ser revisto pela trilha. Os MP4 (1280×720, cerca de 3 MB cada), as legendas `.vtt` e os pôsteres ficam em `public/videos/` e só são baixados quando a pessoa aperta "Assistir" (`preload="none"`). A transcrição em texto fica no próprio player. Os vídeos são páginas HTML animadas, renderizadas localmente com o HyperFrames; a produção está documentada em [`videos/README.md`](videos/README.md) e as deixas das legendas em `src/content/videos.ts`.
+Cada módulo tem um vídeo narrado de 60 s (voz gerada localmente pelo Kokoro, com efeitos e sem música), que abre antes da primeira missão do módulo (botão "Pular" sempre à mão) e pode ser revisto pela trilha. Os MP4 (1280×720, cerca de 2,7 MB cada), as legendas `.vtt` e os pôsteres ficam em `public/videos/` e só são baixados quando a pessoa aperta "Assistir" (`preload="none"`). A transcrição em texto fica no próprio player. Os vídeos são páginas HTML animadas, renderizadas localmente com o HyperFrames; a produção está documentada em [`videos/README.md`](videos/README.md) e as deixas das legendas em `src/content/videos.ts`.
 
 ## Roteiros de verificação
 
